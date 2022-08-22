@@ -18,12 +18,20 @@ indiv <- foreign::read.spss(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPerson Academi
 trips <- foreign::read.spss(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPersonTrip Academic.sav"), to.data.frame = T) %>% 
   arrange(IDNumber,PersonNumber,TripNumber) %>% semi_join(select(indiv,IDNumber,PersonNumber))
 
+# Read in corrected OAs and replace
 trips_newOAs <- foreign::read.spss(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPersonTrip (corrected OA).sav"), to.data.frame = T) %>%
   distinct(IDNumber,PersonNumber,TripNumber, .keep_all = TRUE) %>%
   mutate(across(c("PersonNumber", "TripNumber"), as.numeric))
 trips <- trips %>% select(-StartOutputArea,-EndOutputArea) %>% left_join(trips_newOAs)
 rm(trips_newOAs)
 
+# Save data RAW (this is the "raw" data from TfGM)
+RAW <- list()
+RAW$years <- years
+RAW$indiv <- indiv
+RAW$trips <- trips
+
+# Locations (used for to look up LSOAs and MSOAs from OAs)
 locations <- readr::read_csv(paste0(INPUT_PATH,"OA_lookup.csv"), col_select = c("OA11CD","LSOA11CD","MSOA11CD")) %>%
   transmute(hh.OA = OA11CD, hh.LSOA = LSOA11CD, hh.MSOA = MSOA11CD)
 
@@ -167,13 +175,14 @@ trips$t.destination <- categorise_activity(trips$t.endPurpose)
 
 ###### SAVE FULL VERSION ######
 TRADS <- list()
+TRADS$raw = RAW
 TRADS$households = households
 TRADS$indiv = indiv
 TRADS$trips = trips
 saveRDS(TRADS,paste0(OUTPUT_PATH,"TRADS.rds"))
 
 ###### SAVE SAFE VERSION ######
-SAFE <- TRADS
+SAFE <- TRADS[names(TRADS) != "raw"]
 
 # Remove location-specific data from persons/trips dataset
 SAFE$trips <- SAFE$trips %>% select(-t.startOA,-t.endOA)
@@ -191,4 +200,4 @@ SAFE$households <- SAFE$households %>%
 saveRDS(SAFE,paste0(OUTPUT_PATH,"TRADS_safe.rds"))
 
 ###### CLEAN UP ######
-rm(households,indiv,trips,years,locations,SAFE,INPUT_PATH,OUTPUT_PATH,categorise_activity)
+rm(RAW,households,indiv,trips,years,locations,SAFE,INPUT_PATH,OUTPUT_PATH,categorise_activity)

@@ -1,7 +1,7 @@
 ###### CONVERT OUTPUT AREAS TO X/Y COORDINATES BASED ON POPULATION-WEIGHTED CENTROIDS ######
 #################   REQUIRED TO PREPARE DATASET FOR ROUTING IN MATSIM     ################# 
 library(tidyverse)
-trips <- foreign::read.spss("data/Manchester/Yrs 6,7,8 HouseholdPersonTrip Academic.sav", to.data.frame = T)
+trips <- readRDS("data/Manchester/processed/TRADS.rds")$raw$trips
 
 ###### Read population-weighted centroids ######
 centroids <- sf::read_sf("~/Documents/TfGM/Output_Areas__December_2011__Population_Weighted_Centroids-shp/Output_Areas__December_2011__Population_Weighted_Centroids.shp")
