@@ -188,7 +188,7 @@ SAFE$households <- SAFE$households %>%
   select(-hh.OA,-hh.LSOA,-hh.MSOA)
 
 # Save
-saveRDS(TRADS,paste0(OUTPUT_PATH,"TRADS_safe.rds"))
+saveRDS(SAFE,paste0(OUTPUT_PATH,"TRADS_safe.rds"))
 
 ###### CLEAN UP ######
 rm(households,indiv,trips,years,locations,SAFE,INPUT_PATH,OUTPUT_PATH,categorise_activity)
