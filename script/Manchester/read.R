@@ -1,5 +1,6 @@
 ####### SETUP #######
 library(tidyverse)
+rm(list = ls())
 INPUT_PATH <- "data/Manchester/"
 OUTPUT_PATH <- "data/Manchester/processed/"
 
@@ -57,7 +58,7 @@ indiv <- indiv %>% select(-all_of(household_cols))
 # Clean up
 rm(household_cols)
 
-###### DEFINE PERSON/TRIP/HOUSEHOLD IDS ######
+###### HOUSEHOLD VARIABLES ######
 households <- households %>% 
   transmute(hh.id = IDNumber,
             hh.year = Household_YearNo,
@@ -72,6 +73,7 @@ households <- households %>%
             hh.OA = OutputArea) %>%
   left_join(locations)
 
+###### INDIVIDUAL VARIABLES ######
 indiv <- indiv %>%
   transmute(hh.id = IDNumber,
             p.id = PersonNumber,
@@ -100,12 +102,42 @@ indiv <- indiv %>%
             p.mobile = LeaveHome,
             p.trips = NumberTrips)
 
+###### TRIP VARIABLES ######
+# Function to assign origin/destination activity types
+categorise_activity <- function(purpose) {
+  recode_factor(purpose,
+                `Home` = "H",
+                `Usual place of work` = "W",
+                `Work - Business, other` = "B",
+                `Moving people or goods in connection with employment` = "B",
+                `Education as pupil, student` = "E",
+                `Shopping Food` = "S",
+                `Shopping Non food` = "S",
+                `Social - Entertainment, recreation, Participate in sport, pub, restaurant` = "R",
+                `Tourism, sightseeing` = "R",
+                `Escorting to place of work, pick-up, drop-off` = "A",
+                `Escorting to place of education, pick-up, drop-off` = "A",
+                `Childcare  taking or collecting child to or from babysitter, nursery etc` = "A",
+                `Accompanying or giving lift to other person, not school, or work` = "A",
+                `Visit friends or relatives` = "O",
+                `Use Services, Personal Business, bank, hairdresser, library etc` = "O",
+                `Health or medical visit` = "O",
+                `Worship or religious observance` = "O",
+                `Unpaid, voluntary work` = "O",
+                `Staying at hotel or other temporary accommodation` = "O",
+                `Other` = "O",
+                `Round trip walk, cycle, drive for enjoyment` = "RRT",
+                `NR` = "unknown")
+}
+
 trips <- trips %>% 
   transmute(hh.id = IDNumber,
             p.id = PersonNumber,
             t.id = TripNumber,
             t.startPurpose = StartPurpose,
             t.endPurpose = EndPurpose,
+            t.origin = categorise_activity(t.startPurpose),
+            t.destination = categorise_activity(t.endPurpose),
             t.startOA = StartOutputArea,
             t.endOA = EndOutputArea,
             t.departureTime = round(StartTime),
@@ -143,35 +175,21 @@ trips <- trips %>%
             t.trainTicket2_other = TrainTicketType2Other,
             t.trainTicket3_other = TrainTicketType3Other)
 
-###### ASSIGN ORIGIN/DESTINATION ACTIVITY TYPES ######
-categorise_activity <- function(purpose) {
-  recode_factor(purpose,
-                `Home` = "H",
-                `Usual place of work` = "W",
-                `Work - Business, other` = "B",
-                `Moving people or goods in connection with employment` = "B",
-                `Education as pupil, student` = "E",
-                `Shopping Food` = "S",
-                `Shopping Non food` = "S",
-                `Social - Entertainment, recreation, Participate in sport, pub, restaurant` = "R",
-                `Tourism, sightseeing` = "R",
-                `Escorting to place of work, pick-up, drop-off` = "A",
-                `Escorting to place of education, pick-up, drop-off` = "A",
-                `Childcare  taking or collecting child to or from babysitter, nursery etc` = "A",
-                `Accompanying or giving lift to other person, not school, or work` = "A",
-                `Visit friends or relatives` = "O",
-                `Use Services, Personal Business, bank, hairdresser, library etc` = "O",
-                `Health or medical visit` = "O",
-                `Worship or religious observance` = "O",
-                `Unpaid, voluntary work` = "O",
-                `Staying at hotel or other temporary accommodation` = "O",
-                `Other` = "O",
-                `Round trip walk, cycle, drive for enjoyment` = "RRT",
-                `NR` = "unknown")
-}
-
-trips$t.origin <- categorise_activity(trips$t.startPurpose)
-trips$t.destination <- categorise_activity(trips$t.endPurpose)
+# Add OA/purpose (mis)match variables
+trips <- trips %>%
+  group_by(hh.id,p.id) %>%
+  mutate(t.check.OA_matches_prev = t.startPurpose == lag(t.endPurpose),
+         t.check.purpose_matches_prev = t.startOA == lag(t.endOA)) %>%
+  ungroup() %>%
+  left_join(select(households,hh.id,hh.OA)) %>%
+  left_join(select(indiv,hh.id,p.id,p.workOA,p.studyOA)) %>%
+  mutate(t.check.OA_home_orig  = case_when(t.origin == "H" ~ t.startOA == hh.OA),
+         t.check.OA_home_dest  = case_when(t.destination == "H" ~ t.endOA == hh.OA),
+         t.check.OA_work_orig  = case_when(t.origin == "W" ~ t.startOA == p.workOA),
+         t.check.OA_work_dest  = case_when(t.destination == "W" ~ t.endOA == p.workOA),
+         t.check.OA_study_orig = case_when(t.origin == "E" ~ t.startOA == p.studyOA),
+         t.check.OA_study_dest = case_when(t.destination == "E" ~ t.endOA == p.studyOA)) %>%
+  select(-hh.OA,-p.workOA,-p.studyOA)
 
 ###### SAVE FULL VERSION ######
 TRADS <- list()

@@ -15,4 +15,4 @@ tripsWithXY <- trips %>%
   left_join(centroids, by = c("EndOutputArea" = "OA11CD")) %>%
   rename(EndEasting = X, EndNorthing = Y)
 
-write.csv(tripsWithXY,file = "~/Documents/TfGM/tripsWithXY.csv", quote = FALSE)
+write.csv(tripsWithXY,file = "data/Manchester/processed/tripsWithXY.csv", quote = FALSE)
