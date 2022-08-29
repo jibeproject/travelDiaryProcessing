@@ -1,16 +1,21 @@
 ###### SCRIPT TO READ ROUTE ATTRIBUTES AND ADD TO TRADS DATASET #######
 library(tidyverse)
+rm(list = ls())
 
-routeAttributes <- readr::read_csv("data/Manchester/routing/output.csv") %>% 
+routeAttributes <- readr::read_csv("~/Documents/manchester/TfGM/output11.csv", na = c("null",""),
+                                   col_types = "ciilllllddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddiidddccccccd") %>% 
   rename(hh.id = IDNumber, 
          p.id = PersonNumber, 
          t.id = TripNumber,
+         t.homeWithinBoundary = HomeWithinBoundary,
          t.originWithinBoundary = OriginWithinBoundary, 
          t.destinationWithinBoundary = DestinationWithinBoundary, 
-         t.sameOrigAndDest = SameOrigAndDest)
+         t.sameHomeAndDest = SameHomeAndDest,
+         t.sameOrigAndDest = SameOrigAndDest) %>%
+  select(-home_cost,-home_time)
 
 # Add prefix "t.route." to all route attributes
-names(routeAttributes)[-c(1:6)] <- paste0("t.route.",names(routeAttributes)[-c(1:6)])
+names(routeAttributes)[-c(1:8)] <- paste0("t.route.",names(routeAttributes)[-c(1:8)])
 
 ###### INCLUDE ATTRIBUTES INTO TRADS DATASET ######
 # Main dataset
