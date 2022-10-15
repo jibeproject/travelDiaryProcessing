@@ -16,6 +16,14 @@ indiv <- foreign::read.spss(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPerson Academi
   filter(!duplicate) %>%
   select(-duplicate)
 
+licenseTickets <- readxl::read_xlsx(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPerson (licence and season ticket).xlsx")) %>%
+  transmute(IDNumber = Household_IDNumber,
+            PersonNumber,
+            DrivingLicence = `Driving Licence`,
+            SeasonTicketPeriod = `Season Ticket Period`)
+
+indiv <- left_join(indiv, licenseTickets)
+
 trips <- foreign::read.spss(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPersonTrip Academic.sav"), to.data.frame = T) %>% 
   arrange(IDNumber,PersonNumber,TripNumber) %>% semi_join(select(indiv,IDNumber,PersonNumber))
 
@@ -81,6 +89,8 @@ indiv <- indiv %>%
             p.female = na_if(Gender,99) == "Female",
             p.age_group = Age,
             p.ethnicity = Ethnicity,
+            p.licence = DrivingLicence,
+            p.seasonTicket = SeasonTicketPeriod,
             p.ws_workOver30h = WorkStatus2 != 0,
             p.ws_work16to30h = WorkStatus3 != 0,
             p.ws_workUnder16h = WorkStatus4 != 0,
