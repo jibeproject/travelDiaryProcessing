@@ -6,12 +6,12 @@ library(tidyverse)
 trips <- readRDS("data/Manchester/processed/TRADS.rds")$raw$trips
 
 ###### Read population-weighted centroids ######
-centroids <- sf::read_sf("~/Documents/manchester/gis/OAcentroids/Output_Areas__December_2011__Population_Weighted_Centroids.shp")
+centroids <- sf::read_sf("~/Documents/TfGM/Output_Areas__December_2011__Population_Weighted_Centroids-shp/Output_Areas__December_2011__Population_Weighted_Centroids.shp")
 centroids <- centroids %>% sf::st_drop_geometry() %>% cbind(sf::st_coordinates(centroids$geometry)) %>% select(OA11CD,X,Y)
 
 # Create trips file with only the data required for routing
 tripsWithXY <- trips %>% 
-  select(IDNumber,PersonNumber,TripNumber,StartTime,EndTime,OutputArea,StartOutputArea,EndOutputArea) %>%
+  select(IDNumber,PersonNumber,TripNumber,StartTime,EndTime,MainMode,OutputArea,StartOutputArea,EndOutputArea) %>%
   left_join(centroids, by = c("OutputArea" = "OA11CD")) %>%
   rename(HomeEasting = X, HomeNorthing = Y) %>%
   left_join(centroids, by = c("StartOutputArea" = "OA11CD")) %>%

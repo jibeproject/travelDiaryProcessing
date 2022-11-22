@@ -23,6 +23,7 @@ licenseTickets <- readxl::read_xlsx(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPerson
             SeasonTicketPeriod = `Season Ticket Period`)
 
 indiv <- left_join(indiv, licenseTickets)
+rm(licenseTickets)
 
 trips <- foreign::read.spss(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPersonTrip Academic.sav"), to.data.frame = T) %>% 
   arrange(IDNumber,PersonNumber,TripNumber) %>% semi_join(select(indiv,IDNumber,PersonNumber))
