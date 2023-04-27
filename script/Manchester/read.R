@@ -87,7 +87,7 @@ indiv <- indiv %>%
   transmute(hh.id = IDNumber,
             p.id = PersonNumber,
             p.ID = Person_ID,
-            p.female = na_if(Gender,99) == "Female",
+            p.female = na_if(Gender,"99") == "Female",
             p.age_group = Age,
             p.ethnicity = Ethnicity,
             p.licence = DrivingLicence,
