@@ -7,7 +7,4 @@ source("script/Manchester/read.R")
 # source("script/Manchester/prepForMATSim.R")
 
 # Add route attributes from MATSim
-source("script/Manchester/addRouteAttributes.R")
-
-# Add abm attributes
-source("script/Manchester/abm.R")
+source("script/Manchester/addMATSimAttributes.R")

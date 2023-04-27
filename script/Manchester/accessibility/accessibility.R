@@ -21,7 +21,7 @@ food <- filter(POIs, food,
             Y = feature_northing,
             WEIGHT = area)
 
-write_csv2(food,"~/Documents/manchester/JIBE/accessibility/food.csv")
+write_csv(food,"~/Documents/manchester/JIBE/accessibility/food.csv")
 
 ## GREENSPACE
 greenspace <- read_csv("~/Documents/manchester/JIBE/accessibility/green_sites_access_XY.csv")
@@ -31,7 +31,7 @@ green <- greenspace %>%
             X,Y,
             WEIGHT = green_area)
 
-write_csv2(green,"~/Documents/manchester/JIBE/accessibility/green.csv")
+write_csv(green,"~/Documents/manchester/JIBE/accessibility/green.csv")
 
 ## RESULTS
 bikeJibe <- read_delim("~/Documents/manchester/JIBE/accessibility/results/foodBikeJibe.csv", delim = ";")
