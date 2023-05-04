@@ -99,11 +99,13 @@ rep_str = c('Vehicle Driver'='Vehicle Driver','Vehicle Passenger'='Vehicle Passe
 trips$mainmode <- str_replace_all(trips$combinedmode2, rep_str)
 trips$mainmode[trips$mainmode=="PT"] = "PT_walk_Bike"
 
-# mandatory data "home to work/education + work/education to home"
-mandatory_hwe<-subset(trips, trips$origplace1=="Accommodation"& trips$destpurp1=="Work Related" | trips$destpurp1=="Education")
-mandatory_weh<-subset(trips, trips$origplace1=="Workplace" | trips$origplace1=="Place of Education"& trips$destpurp1=="At or Go Home")
-mandatory_tot<-rbind(mandatory_hwe,mandatory_weh)
-trips<-mandatory_tot
+### creating binary variables for walking and cycling and mandatory trips
+trips$walking <- 0
+trips$walking[trips$mainmode == "Walking"] = 1
+trips$bicycle <- 0
+trips$bicycle[trips$mainmode == "Bicycle"] = 1
+trips$mandatory <- 0
+trips$mandatory[trips$destpurp1 =="Work Related" | trips$destpurp1 =="Education"] = 1
 
 #generaing age groups 
 trips$agegroup[trips$age<=14] = 1
@@ -255,6 +257,15 @@ trips <- trips %>% rowwise() %>%
 #mandatory_trips <- mandatory_trips %>%
 #  relocate(gnaf_pid, .before = origdist_gnaf)
 
+# exporting trips to csv format
+write.csv(trips,file = "data/Melbourne/DOT_VISTA/processed/trips.csv")
+                              
+# mandatory data "home to work/education + work/education to home"
+mandatory_hwe<-subset(trips, trips$origplace1=="Accommodation"& trips$destpurp1=="Work Related" | trips$destpurp1=="Education")
+mandatory_weh<-subset(trips, trips$origplace1=="Workplace" | trips$origplace1=="Place of Education"& trips$destpurp1=="At or Go Home")
+mandatory_tot<-rbind(mandatory_hwe,mandatory_weh)
+trips<-mandatory_tot
+                              
 # exporting work and education trips to csv format
 write.csv(trips,file = "data/Melbourne/DOT_VISTA/processed/mandatory_trips.csv")
 
