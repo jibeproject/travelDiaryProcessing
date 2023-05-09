@@ -6,7 +6,7 @@ library(tidyverse)
 library(sf) # for spatial things
 library(lwgeom) # for advanced spatial things
 library(fitdistrplus) # for log normal distributions
-tripdata <- read.csv("data/Melbourne/DOT_VISTA/processed/T_VISTA_MAIN.csv",header=T, na.strings="N/A")
+tripdata <- read.csv("C:/Users/e18933/OneDrive - RMIT University/DOT_VISTA/Processed Data/T_VISTA_MAIN.csv",header=T, na.strings="N/A")
 df <- tripdata %>%
   mutate(
     orig_long = origlong,
@@ -18,7 +18,7 @@ df <- tripdata %>%
 # filtering data based on geographic extent-----------------------------------------------------------------------------------------------------
 
 
-studyRegion <- st_read("~/Documents/melbourne/absRegionsReprojected.sqlite",layer="GCCSA_2016_AUST") %>%
+studyRegion <- st_read("C:/Users/e18933/OneDrive - RMIT University/DOT_VISTA/Processed Data/absRegionsReprojected.sqlite",layer="GCCSA_2016_AUST") %>%
   st_buffer(1)
 
 orig_within_region <- df %>%
@@ -34,15 +34,15 @@ dest_within_region <- df %>%
   filter(lengths(st_intersects(., studyRegion,prepared=TRUE,sparse=TRUE)) > 0)
 
 #trips within greater Melbourne
-write.csv(orig_within_region,file = "data/Melbourne/DOT_VISTA/processed/origmelb_trips.csv",row.names= F)
-write.csv(dest_within_region,file = "data/Melbourne/DOT_VISTA/processed/destmelb_trips.csv",row.names=F)
-orig <- read_csv("data/Melbourne/DOT_VISTA/processed/origmelb_trips.csv", col_names = T,show_col_types = F)
-dest <- read_csv("data/Melbourne/DOT_VISTA/processed/destmelb_trips.csv", col_names = T,show_col_types = F)
+write.csv(orig_within_region,file = "C:/Users/e18933/OneDrive - RMIT University/DOT_VISTA/Processed Data/origmelb_trips.csv",row.names= F)
+write.csv(dest_within_region,file = "C:/Users/e18933/OneDrive - RMIT University/DOT_VISTA/Processed Data/destmelb_trips.csv",row.names=F)
+orig <- read_csv("C:/Users/e18933/OneDrive - RMIT University/DOT_VISTA/Processed Data/origmelb_trips.csv", col_names = T,show_col_types = F)
+dest <- read_csv("C:/Users/e18933/OneDrive - RMIT University/DOT_VISTA/Processed Data/destmelb_trips.csv", col_names = T,show_col_types = F)
 melbtrips <- semi_join(orig,dest, by="tripid")
 ############################################################################################################################################
 # joining trip data with household&person data-----------------------------------------------------------------------------------------------------
-hhdata <- read.csv("data/Melbourne/DOT_VISTA/processed/H_VISTA_1220_Coord.csv")
-pdata <- read.csv("data/Melbourne/DOT_VISTA/processed/P_VISTA_1220_Coord.csv")
+hhdata <- read.csv("C:/Users/e18933/OneDrive - RMIT University/DOT_VISTA/Processed Data/H_VISTA_1220_Coord.csv")
+pdata <- read.csv("C:/Users/e18933/OneDrive - RMIT University/DOT_VISTA/Processed Data/P_VISTA_1220_Coord.csv")
 tripshh <- merge(melbtrips,hhdata, by="hhid")
 tripshhp <- merge(tripshh,pdata, by="persid")
 
@@ -99,11 +99,13 @@ rep_str = c('Vehicle Driver'='Vehicle Driver','Vehicle Passenger'='Vehicle Passe
 trips$mainmode <- str_replace_all(trips$combinedmode2, rep_str)
 trips$mainmode[trips$mainmode=="PT"] = "PT_walk_Bike"
 
-# mandatory data "home to work/education + work/education to home"
-mandatory_hwe<-subset(trips, trips$origplace1=="Accommodation"& trips$destpurp1=="Work Related" | trips$destpurp1=="Education")
-mandatory_weh<-subset(trips, trips$origplace1=="Workplace" | trips$origplace1=="Place of Education"& trips$destpurp1=="At or Go Home")
-mandatory_tot<-rbind(mandatory_hwe,mandatory_weh)
-trips<-mandatory_tot
+### creating binary variables for walking and cycling and mandatory trips
+trips$walking <- 0
+trips$walking[trips$mainmode == "Walking"] = 1
+trips$bicycle <- 0
+trips$bicycle[trips$mainmode == "Bicycle"] = 1
+trips$mandatory <- 0
+trips$mandatory[trips$destpurp1 =="Work Related" | trips$destpurp1 =="Education"] = 1
 
 #generaing age groups 
 trips$agegroup[trips$age<=14] = 1
@@ -171,10 +173,10 @@ trips$mainmode2[trips$mainmode == "PT_Car"] = 5
 trips$mainmode2[trips$mainmode == "PT_walk_Bike"] = 6
 
 #joining with route attributes
-route_attributes <- read.csv("data/Melbourne/DOT_VISTA/processed/route_attributes.csv")
+route_attributes <- read.csv("C:/Users/e18933/OneDrive - RMIT University/DOT_VISTA/Processed Data/route_attributes.csv")
 trips <- merge(trips, route_attributes, by="tripid")
 #joining car and pt travel times 
-ptcar_time <- read.csv("data/Melbourne/DOT_VISTA/processed/carandpt_time.csv")
+ptcar_time <- read.csv("C:/Users/e18933/OneDrive - RMIT University/DOT_VISTA/Processed Data/carandpt_time.csv")
 trips <- merge(trips, ptcar_time, by="tripid")
 
 #generating availability of modes (should be edited)
@@ -255,7 +257,16 @@ trips <- trips %>% rowwise() %>%
 #mandatory_trips <- mandatory_trips %>%
 #  relocate(gnaf_pid, .before = origdist_gnaf)
 
+# exporting trips to csv format (note: at the moment linked based attributes have been only calculated for mandatory trips)
+write.csv(trips,file = "C:/Users/e18933/OneDrive - RMIT University/DOT_VISTA/Processed Data/trips.csv")
+
+# mandatory data "home to work/education + work/education to home"
+mandatory_hwe<-subset(trips, trips$origplace1=="Accommodation"& trips$destpurp1=="Work Related" | trips$destpurp1=="Education")
+mandatory_weh<-subset(trips, trips$origplace1=="Workplace" | trips$origplace1=="Place of Education"& trips$destpurp1=="At or Go Home")
+mandatory_tot<-rbind(mandatory_hwe,mandatory_weh)
+mandatory_trips<-mandatory_tot
+
 # exporting work and education trips to csv format
-write.csv(trips,file = "data/Melbourne/DOT_VISTA/processed/mandatory_trips.csv")
+write.csv(mandatory_trips,file = "C:/Users/e18933/OneDrive - RMIT University/DOT_VISTA/Processed Data/mandatory_trips.csv")
 
 
