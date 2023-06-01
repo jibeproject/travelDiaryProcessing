@@ -10,18 +10,14 @@ suppressPackageStartupMessages(library(stringr))# for editing columns
 suppressPackageStartupMessages(library(tidyverse))# for manipulating data
 suppressPackageStartupMessages(library(expss))# for manipulating data
 
-#Writing and reading csv
+#reading files
 trads <- read_rds("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/TRADS_safe_routed_v2.rds")
-write.csv(trads[["indiv"]],file = "C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/pers_manchester.csv",row.names=F)
-write.csv(trads[["households"]],file = "C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/hh_manchester.csv",row.names=F)
-write.csv(trads[["trips"]],file = "C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/oldtrips_manchester.csv",row.names=F)
+list2env(trads, globalenv())
 oldtrips <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/oldtrips_manchester.csv", header = T)
 trips_short <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/mandatoryshort.csv", header = T)
 trips_fast <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/mandatoryfast.csv", header = T)
 trips_time <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/routesFast.csv", header = T)
 trips_distance <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/routesShort.csv", header = T)
-households <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/hh_manchester.csv",header=T)
-indiv <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/pers_manchester.csv",header=T)
 
 ## renaming columns
 names(trips_short)[names(trips_short) == "IDNumber"] <- "hh.id"
@@ -85,6 +81,7 @@ oldtrips <- subset(oldtrips, select = -c(1:3))
 trips <- merge(trips, oldtrips, by="trip.id")
 
 # deleting the old BE variables
+names(trips)[names(trips) == "t.route.pt_totalTravelTime"] <- "pt_totalTravelTime"
 cols_to_delete <- grep("t.route", names(trips), value = TRUE)
 trips <- trips[, !(names(trips) %in% cols_to_delete)]
 
@@ -193,8 +190,7 @@ trips_hh_p$walk_time[is.na(trips_hh_p$walk_time)] = 0
 trips_hh_p$bike_time[is.na(trips_hh_p$bike_time)] = 0
 trips_hh_p$walk_dist[is.na(trips_hh_p$walk_dist)] = 0
 trips_hh_p$bike_dist[is.na(trips_hh_p$bike_dist)] = 0
-#trips_hh_p$t.route.pt_totalTravelTime[is.na(trips_hh_p$pt_totalTravelTime)] = 0
-#trips_hh_p <- trips_hh_p[!is.na(trips_hh_p$t.route.bike_short_POI),]
+trips_hh_p$pt_totalTravelTime[is.na(trips_hh_p$pt_totalTravelTime)] = 0
 
 #trips_hh_p$t.route.pt_accessDistance[is.na(trips_hh_p$t.route.pt_accessDistance)] = 0
 #trips_hh_p$t.route.t.route.pt_egressDistance[is.na(trips_hh_p$t.route.pt_egressDistance)] = 0
