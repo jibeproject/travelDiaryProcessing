@@ -18,6 +18,8 @@ write.csv(trads[["trips"]],file = "C:/Users/e18933/OneDrive - RMIT University/WO
 oldtrips <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/oldtrips_manchester.csv", header = T)
 trips_short <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/mandatoryshort.csv", header = T)
 trips_fast <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/mandatoryfast.csv", header = T)
+trips_time <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/routesFast.csv", header = T)
+trips_distance <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/routesShort.csv", header = T)
 households <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/hh_manchester.csv",header=T)
 indiv <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/pers_manchester.csv",header=T)
 
@@ -28,6 +30,12 @@ names(trips_short)[names(trips_short) == "TripNumber"] <- "t.id"
 names(trips_fast)[names(trips_fast) == "IDNumber"] <- "hh.id"
 names(trips_fast)[names(trips_fast) == "PersonNumber"] <- "p.id"
 names(trips_fast)[names(trips_fast) == "TripNumber"] <- "t.id"
+names(trips_time)[names(trips_time) == "IDNumber"] <- "hh.id"
+names(trips_time)[names(trips_time) == "PersonNumber"] <- "p.id"
+names(trips_time)[names(trips_time) == "TripNumber"] <- "t.id"
+names(trips_distance)[names(trips_distance) == "IDNumber"] <- "hh.id"
+names(trips_distance)[names(trips_distance) == "PersonNumber"] <- "p.id"
+names(trips_distance)[names(trips_distance) == "TripNumber"] <- "t.id"
 
 #creating unique id for individuals
 indiv <- indiv %>%
@@ -37,6 +45,12 @@ trips_short <- trips_short %>%
   unite("indiv.id", c('hh.id', 'p.id'), sep ='', na.rm = TRUE, remove = FALSE)%>%
   relocate(indiv.id, .after = hh.id)
 trips_fast <- trips_fast %>%
+  unite("indiv.id", c('hh.id', 'p.id'), sep ='', na.rm = TRUE, remove = FALSE)%>%
+  relocate(indiv.id, .after = hh.id)
+trips_time <- trips_time %>%
+  unite("indiv.id", c('hh.id', 'p.id'), sep ='', na.rm = TRUE, remove = FALSE)%>%
+  relocate(indiv.id, .after = hh.id)
+trips_distance <- trips_distance %>%
   unite("indiv.id", c('hh.id', 'p.id'), sep ='', na.rm = TRUE, remove = FALSE)%>%
   relocate(indiv.id, .after = hh.id)
 
@@ -49,22 +63,30 @@ trips_short <- trips_short %>%
 trips_fast <- trips_fast %>%
   unite("trip.id", c('indiv.id', 't.id'), sep ='', na.rm = TRUE, remove = FALSE)%>%
   relocate(trip.id, .after = indiv.id)
+trips_time <- trips_time %>%
+  unite("trip.id", c('indiv.id', 't.id'), sep ='', na.rm = TRUE, remove = FALSE)%>%
+  relocate(trip.id, .after = indiv.id)
+trips_distance <- trips_distance %>%
+  unite("trip.id", c('indiv.id', 't.id'), sep ='', na.rm = TRUE, remove = FALSE)%>%
+  relocate(trip.id, .after = indiv.id)
 
 ## adding short and fast to the columns name
-start_col <- 5
-end_col <- 23
+start_col <- 4
+end_col <- 24
 colnames(trips_short)[start_col:end_col] <- paste("short_", colnames(trips_short)[start_col:end_col], sep = "")
 colnames(trips_fast)[start_col:end_col] <- paste("fast_", colnames(trips_fast)[start_col:end_col], sep = "")
 
 ## merging trips characteristics from the old file to the new trips data
-trips <- merge(trips_short, trips_fast, by="trip.id")
-trips <- left_join(trips, oldtrips, by="trip.id")
-trips <- trips %>% select(.,-matches("t.route"))
+trips <- merge(trips_short, trips_fast, by=c("trip.id","hh.id","indiv.id"))
+trips_distance <- trips_distance[,-c(4,5,8)]
+trips <- merge(trips, trips_time, by=c("trip.id","hh.id","indiv.id"))
+trips <- merge(trips, trips_distance, by=c("trip.id","hh.id","indiv.id"))
+oldtrips <- subset(oldtrips, select = -c(1:3))
+trips <- merge(trips, oldtrips, by="trip.id")
 
 # deleting the old BE variables
 cols_to_delete <- grep("t.route", names(trips), value = TRUE)
 trips <- trips[, !(names(trips) %in% cols_to_delete)]
-
 
 #merging trip data with household and person data
 trips_hh <- merge(trips,households, by="hh.id")
@@ -132,7 +154,7 @@ trips_hh_p$hh.structure2=="3+ adults, 1+ children"|trips_hh_p$hh.structure2=="Si
 trips_hh_p$hhstructure[trips_hh_p$hh.structure2=="Single Adult 16 to 64"|trips_hh_p$hh.structure2=="Single Adult 65+"|trips_hh_p$hh.structure2=="Three of more Adults" |
 trips_hh_p$hh.structure2=="Two Adults Hoh or HRP 16 to 64"|trips_hh_p$hh.structure2=="Two Adults Hoh or HRP 65+"] = 0 # hh without children
 
-#trips_hh_p$hhstructure <- factor(trips_hh_p$hhstructure, levels = c(1,0),labels = c("households with children", "households without children"))
+trips_hh_p$hhstructure <- factor(trips_hh_p$hhstructure, levels = c(1,0),labels = c("households with children", "households without children"))
 
 
 ## modifying route-based attributes (divided by distance to get the raw values) 
@@ -147,14 +169,6 @@ trips_hh_p$mainmode[trips_hh_p$t.m_train=="TRUE"|trips_hh_p$t.m_metrolink=="TRUE
 trips_hh_p <- trips_hh_p[!(trips_hh_p$t.m_main=="Other"),]
 
 #trips_hh_p$mainmode <- factor(trips_hh_p$mainmode, levels = c(1,2,3,4,5),labels = c("card", "carp", "walk","bike","ptwalk"))
-
-# generating log transforamtion of distance
-trips_hh_p$logdist_walk_short = log(trips_hh_p$t.route.walk_short_dist)
-trips_hh_p$logdist_bike_short = log(trips_hh_p$t.route.bike_short_dist)
-trips_hh_p$logdist_walk_fast = log(trips_hh_p$t.route.walk_fast_dist)
-trips_hh_p$logdist_bike_fast = log(trips_hh_p$t.route.bike_fast_dist)
-trips_hh_p$logdist_walk_jibe = log(trips_hh_p$t.route.walk_jibe_dist)
-trips_hh_p$logdist_bike_jibe = log(trips_hh_p$t.route.bike_jibe_dist)
 
 #generating availability of modes
 trips_hh_p$availcard <- 1
@@ -174,25 +188,13 @@ trips_hh_p$availpt[trips_hh_p$troutept_totaltraveltime == 0] = 0
 trips_hh_p$availpt[trips_hh_p$mainmode == 5] = 1
 
 #replacing NAs in time and cost variables with 0
-trips_hh_p$t.route.car_time[is.na(trips_hh_p$t.route.car_time)] = 0
-trips_hh_p$t.route.car_cost[is.na(trips_hh_p$t.route.car_cost)] = 0
-trips_hh_p$t.route.walk_short_time[is.na(trips_hh_p$t.route.walk_short_time)] = 0
-trips_hh_p$t.route.walk_short_cost[is.na(trips_hh_p$t.route.walk_short_cost)] = 0
-trips_hh_p$t.route.bike_short_time[is.na(trips_hh_p$t.route.bike_short_cost)] = 0
-trips_hh_p$t.route.bike_short_cost[is.na(trips_hh_p$t.route.bike_short_cost)] = 0
-trips_hh_p$t.route.pt_totalTravelTime[is.na(trips_hh_p$pt_totalTravelTime)] = 0
-trips_hh_p <- trips_hh_p[!is.na(trips_hh_p$t.route.bike_short_POI),]
-
-#generating a weighting variable based on walk and bike log distances
-trips_hh_p <- with(trips_hh_p,trips_hh_p[order(trips_hh_p$logdist_walk_short,trips_hh_p$logdist_bike_short),])
-trips_hh_p <- trips_hh_p %>% rowwise() %>%
-  mutate(weight_short = mean(c(logdist_walk_short, logdist_bike_short)))
-trips_hh_p <- with(trips_hh_p,trips_hh_p[order(trips_hh_p$logdist_walk_fast,trips_hh_p$logdist_bike_fast),])
-trips_hh_p <- trips_hh_p %>% rowwise() %>%
-  mutate(weight_fast = mean(c(logdist_walk_fast, logdist_bike_fast)))
-trips_hh_p <- with(trips_hh_p,trips_hh_p[order(trips_hh_p$logdist_walk_jibe,trips_hh_p$logdist_bike_jibe),])
-trips_hh_p <- trips_hh_p %>% rowwise() %>%
-  mutate(weight_jibe = mean(c(logdist_walk_jibe, logdist_bike_jibe)))
+trips_hh_p$car_time[is.na(trips_hh_p$car_time)] = 0
+trips_hh_p$walk_time[is.na(trips_hh_p$walk_time)] = 0
+trips_hh_p$bike_time[is.na(trips_hh_p$bike_time)] = 0
+trips_hh_p$walk_dist[is.na(trips_hh_p$walk_dist)] = 0
+trips_hh_p$bike_dist[is.na(trips_hh_p$bike_dist)] = 0
+#trips_hh_p$t.route.pt_totalTravelTime[is.na(trips_hh_p$pt_totalTravelTime)] = 0
+#trips_hh_p <- trips_hh_p[!is.na(trips_hh_p$t.route.bike_short_POI),]
 
 #trips_hh_p$t.route.pt_accessDistance[is.na(trips_hh_p$t.route.pt_accessDistance)] = 0
 #trips_hh_p$t.route.t.route.pt_egressDistance[is.na(trips_hh_p$t.route.pt_egressDistance)] = 0
