@@ -206,8 +206,8 @@ trips_hh_p$bike_dist[is.na(trips_hh_p$bike_dist)] = 0
 #trips_hh_p$t.route.pt_totalTravelCost <- trips_hh_p$troutept_accessdistance + trips_hh_p$troutept_egressdistance
 
 #extracting work and education trips
-tripsWE<- subset(trips_hh_p, t.startPurpose=="Home"& t.endPurpose=="Usual place of work"|t.endPurpose=="Unpaid, voluntary work"|
-t.endPurpose=="Education as pupil, student" | t.endPurpose== "Work - Business, other")
+#tripsWE<- subset(trips_hh_p, t.startPurpose=="Home"& t.endPurpose=="Usual place of work"|t.endPurpose=="Unpaid, voluntary work"|
+#t.endPurpose=="Education as pupil, student" | t.endPurpose== "Work - Business, other")
 #write_labelled_csv(tripsWE,file = "C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/mandatory_trips.csv",row.names=FALSE, single_file = TRUE)
-write.csv(tripsWE,file = "C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/mandatory_trips.csv",row.names=FALSE)
+write.csv(trips,file = "C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/mandatory_trips.csv",row.names=FALSE)
 
