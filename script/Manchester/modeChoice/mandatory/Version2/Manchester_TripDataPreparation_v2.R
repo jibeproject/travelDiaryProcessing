@@ -13,7 +13,7 @@ suppressPackageStartupMessages(library(expss))# for manipulating data
 #reading files
 trads <- read_rds("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/TRADS_safe_routed_v2.rds")
 list2env(trads, globalenv())
-oldtrips <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/oldtrips_manchester.csv", header = T)
+oldtrips <- trips
 trips_short <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/mandatoryshort.csv", header = T)
 trips_fast <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/mandatoryfast.csv", header = T)
 trips_time <- read.csv("C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/routesFast.csv", header = T)
