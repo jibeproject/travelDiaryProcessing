@@ -152,7 +152,7 @@ trips_hh_p$hh.structure2=="3+ adults, 1+ children"|trips_hh_p$hh.structure2=="Si
 trips_hh_p$hhstructure[trips_hh_p$hh.structure2=="Single Adult 16 to 64"|trips_hh_p$hh.structure2=="Single Adult 65+"|trips_hh_p$hh.structure2=="Three of more Adults" |
 trips_hh_p$hh.structure2=="Two Adults Hoh or HRP 16 to 64"|trips_hh_p$hh.structure2=="Two Adults Hoh or HRP 65+"] = 0 # hh without children
 
-trips_hh_p$hhstructure <- factor(trips_hh_p$hhstructure, levels = c(1,0),labels = c("households with children", "households without children"))
+#trips_hh_p$hhstructure <- factor(trips_hh_p$hhstructure, levels = c(1,0),labels = c("households with children", "households without children"))
 
 
 ## modifying route-based attributes (divided by distance to get the raw values) 
@@ -206,5 +206,5 @@ trips_hh_p$pt_totalTravelTime[is.na(trips_hh_p$pt_totalTravelTime)] = 0
 #tripsWE<- subset(trips_hh_p, t.startPurpose=="Home"& t.endPurpose=="Usual place of work"|t.endPurpose=="Unpaid, voluntary work"|
 #t.endPurpose=="Education as pupil, student" | t.endPurpose== "Work - Business, other")
 #write_labelled_csv(tripsWE,file = "C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/mandatory_trips.csv",row.names=FALSE, single_file = TRUE)
-write.csv(trips,file = "C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/mandatory_trips.csv",row.names=FALSE)
+write.csv(trips_hh_p,file = "C:/Users/e18933/OneDrive - RMIT University/WORK/JIBE/DATA Analysis/R/Manchester/mandatory_trips.csv",row.names=FALSE)
 
