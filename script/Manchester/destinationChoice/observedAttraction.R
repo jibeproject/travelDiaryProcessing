@@ -40,33 +40,57 @@ test <- trips %>% count(EndPurpose, purpose) %>% arrange(desc(n))
 # Remove home/work/business destinations
 trips <- filter(trips, purpose != "work" & purpose != "home" & purpose != "education" & purpose != "business")
 
+# Add MSOA/LSOA
+OA_lookup <- readr::read_csv(paste0("data/Manchester/OA_lookup.csv"), col_select = c("OA11CD","LSOA11CD","MSOA11CD"))
+
+trips <- left_join(trips,OA_lookup,by = c("EndOutputArea" = "OA11CD")) %>% rename(EndMSOA = MSOA11CD, EndLSOA = LSOA11CD)
+
 # Get Attraction of each OA
-rawAttractions <- trips %>%
-  count(EndOutputArea,EndPurpose) %>%
-  pivot_wider(names_from = EndPurpose,
-              values_from = n) %>%
-  filter(EndOutputArea != "         ")
 
-zoneAttractions <- trips %>%
-  count(EndOutputArea,purpose) %>%
-  pivot_wider(names_from = purpose,
-              values_from = n) %>%
-  filter(EndOutputArea != "         ")
+getAttractions <- function(regionType) {
+  rawAttractions <- trips %>%
+    count(!!enquo(regionType),EndPurpose) %>%
+    pivot_wider(names_from = EndPurpose,
+                values_from = n) %>%
+    filter(!!enquo(regionType) != "         ")
+  
+  zoneAttractions <- trips %>%
+    count(!!enquo(regionType),purpose) %>%
+    pivot_wider(names_from = purpose,
+                values_from = n) %>%
+    filter(!!enquo(regionType) != "         ")
+  
+  return(full_join(rawAttractions,zoneAttractions))
+}
 
-attractions <- full_join(rawAttractions,zoneAttractions)
+attractions_OA <- getAttractions(EndOutputArea)
+attractions_LSOA <- getAttractions(EndLSOA)
+attractions_MSOA <- getAttractions(EndMSOA)
+
+
 
 # Attach attractions to OAs
 
-all_OAs <- sf::st_read("~/Documents/TfGM/destinationChoice/gm_oa.gpkg")
-OA_lookup <- readr::read_csv(paste0("data/Manchester/OA_lookup.csv"), col_select = c("OA11CD","LAD17CD","LAD17NM"))
+OAs <- sf::st_read("~/Documents/manchester/zones/gm_oa.shp")
+LSOAs <- sf::st_read("~/Documents/manchester/zones/LSOA_studyArea.shp")
+MSOAs <- sf::st_read("~/Documents/manchester/zones/MSOA_studyArea.shp")
 
 
-gm_districts <- c("Bolton","Bury","Manchester","Oldham","Rochdale","Salford","Stockport","Tameside","Trafford","Wigan")
-gm_oa_list <- OA_lookup %>% filter(LAD17NM %in% gm_districts) %>% pull(OA11CD)
-
-gm_OAs <- all_OAs %>% 
-  filter(geo_code %in% gm_oa_list) %>%
-  left_join(attractions, by = c("geo_code" = "EndOutputArea")) %>%
+attr_OAs <- OAs %>% select(-fid) %>%
+  left_join(attractions_OA, by = c("OA11CD" = "EndOutputArea")) %>%
   mutate(across(where(is.integer),function(x) replace_na(x,0)))
 
-sf::st_write(gm_OAs,"result/attractions.gpkg",delete_layer = TRUE)
+attr_LSOAs <- LSOAs %>% 
+  left_join(attractions_LSOA, by = c("LSOA11CD" = "EndLSOA")) %>%
+  mutate(across(where(is.integer),function(x) replace_na(x,0)))
+
+attr_MSOAs <- MSOAs %>% 
+  left_join(attractions_MSOA, by = c("MSOA11CD" = "EndMSOA")) %>%
+  mutate(across(where(is.integer),function(x) replace_na(x,0)))
+
+
+# Write
+sf::st_write(attr_OAs,"result/attractions_OA.gpkg",delete_layer = TRUE)
+sf::st_write(attr_LSOAs,"result/attractions_LSOA.gpkg",delete_layer = TRUE)
+sf::st_write(attr_MSOAs,"result/attractions_MSOA.gpkg",delete_layer = TRUE)
+

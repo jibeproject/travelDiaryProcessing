@@ -23,7 +23,7 @@ tripsWithXY <- trips %>%
 write.table(tripsWithXY,file = "data/Manchester/processed/tripsWithXY.csv", sep = ";", 
             row.names = FALSE, quote = FALSE)
 
-
+###### CREATE SAMPLE (USEFUL FOR TESTING/DEBUGGING) ######
 filtered <- filter(tripsWithXY,
                   (IDNumber == "MA36068N" & PersonNumber == 4 & TripNumber == 1) |
                      (IDNumber == "MA44388D" & PersonNumber == 1 & TripNumber == 1) |
