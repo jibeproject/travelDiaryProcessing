@@ -166,6 +166,7 @@ trips_hh_p$mainmode[trips_hh_p$t.m_walk=="TRUE"] = 3
 trips_hh_p$mainmode[trips_hh_p$t.m_cycle=="TRUE"] = 4
 trips_hh_p$mainmode[trips_hh_p$t.m_train=="TRUE"|trips_hh_p$t.m_metrolink=="TRUE"|trips_hh_p$t.m_bus=="TRUE"] = 5 
 trips_hh_p <- trips_hh_p[!(trips_hh_p$t.m_main=="Other"),]
+trips_hh_p <- trips_hh_p[complete.cases(trips_hh_p$mainmode), ]
 
 #trips_hh_p$mainmode <- factor(trips_hh_p$mainmode, levels = c(1,2,3,4,5),labels = c("card", "carp", "walk","bike","ptwalk"))
 
@@ -193,6 +194,10 @@ trips_hh_p$bike_time[is.na(trips_hh_p$bike_time)] = 0
 trips_hh_p$walk_dist[is.na(trips_hh_p$walk_dist)] = 0
 trips_hh_p$bike_dist[is.na(trips_hh_p$bike_dist)] = 0
 trips_hh_p$pt_totalTravelTime[is.na(trips_hh_p$pt_totalTravelTime)] = 0
+
+# log transformation of distance variable 
+trips_hh_p$logwalkdist <- log(trips_hh_p$walk_dist)
+trips_hh_p$logbikedist <- log(trips_hh_p$bike_dist)
 
 #trips_hh_p$t.route.pt_accessDistance[is.na(trips_hh_p$t.route.pt_accessDistance)] = 0
 #trips_hh_p$t.route.t.route.pt_egressDistance[is.na(trips_hh_p$t.route.pt_egressDistance)] = 0
