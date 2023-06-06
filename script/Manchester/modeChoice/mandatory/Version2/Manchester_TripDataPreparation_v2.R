@@ -83,7 +83,7 @@ trips <- merge(trips, oldtrips, by="trip.id")
 # deleting the old BE variables
 names(trips)[names(trips) == "t.route.pt_ptTravelTime"] <- "pt_ptTravelTime"
 names(trips)[names(trips) == "t.route.pt_totalTravelTime"] <- "pt_totalTravelTime"
-names(trips)[names(trips) == "t.route.pt_walkTravelTime"] <- "pt_walkTravelTimee"
+names(trips)[names(trips) == "t.route.pt_walkTravelTime"] <- "pt_walkTravelTime"
 cols_to_delete <- grep("t.route", names(trips), value = TRUE)
 trips <- trips[, !(names(trips) %in% cols_to_delete)]
 
