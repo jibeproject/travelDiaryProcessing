@@ -1,7 +1,7 @@
 ####### SETUP #######
 library(tidyverse)
 rm(list = ls())
-INPUT_PATH <- "data/Manchester/"
+INPUT_PATH <- "data/Manchester/raw/"
 OUTPUT_PATH <- "data/Manchester/processed/"
 
 ####### READ IN DATA #######
