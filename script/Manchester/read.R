@@ -1,13 +1,11 @@
 ####### SETUP #######
 library(tidyverse)
 rm(list = ls())
-INPUT_PATH <- "data/Manchester/raw/"
-OUTPUT_PATH <- "data/Manchester/processed/"
 
 ####### READ IN DATA #######
-years <- foreign::read.spss(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPerson YearNo.sav"), to.data.frame = T) %>% distinct()
+years <- foreign::read.spss("data/Manchester/raw/Yrs 6,7,8 HouseholdPerson YearNo.sav", to.data.frame = T) %>% distinct()
 
-indiv <- foreign::read.spss(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPerson Academic.sav"), to.data.frame = T) %>% 
+indiv <- foreign::read.spss("data/Manchester/raw/Yrs 6,7,8 HouseholdPerson Academic.sav", to.data.frame = T) %>% 
   left_join(years) %>% 
   rename(IDNumber = Household_IDNumber) %>%
   group_by(IDNumber,PersonNumber) %>%
@@ -16,7 +14,7 @@ indiv <- foreign::read.spss(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPerson Academi
   filter(!duplicate) %>%
   select(-duplicate)
 
-licenseTickets <- readxl::read_xlsx(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPerson (licence and season ticket).xlsx")) %>%
+licenseTickets <- readxl::read_xlsx("data/Manchester/raw/Yrs 6,7,8 HouseholdPerson (licence and season ticket).xlsx") %>%
   transmute(IDNumber = Household_IDNumber,
             PersonNumber,
             DrivingLicence = `Driving Licence`,
@@ -25,11 +23,11 @@ licenseTickets <- readxl::read_xlsx(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPerson
 indiv <- left_join(indiv, licenseTickets)
 rm(licenseTickets)
 
-trips <- foreign::read.spss(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPersonTrip Academic.sav"), to.data.frame = T) %>% 
+trips <- foreign::read.spss("data/Manchester/raw/Yrs 6,7,8 HouseholdPersonTrip Academic.sav", to.data.frame = T) %>% 
   arrange(IDNumber,PersonNumber,TripNumber) %>% semi_join(select(indiv,IDNumber,PersonNumber))
 
 # Read in corrected OAs and replace
-trips_newOAs <- foreign::read.spss(paste0(INPUT_PATH,"Yrs 6,7,8 HouseholdPersonTrip (corrected OA).sav"), to.data.frame = T) %>%
+trips_newOAs <- foreign::read.spss("data/Manchester/raw/Yrs 6,7,8 HouseholdPersonTrip (corrected OA).sav", to.data.frame = T) %>%
   distinct(IDNumber,PersonNumber,TripNumber, .keep_all = TRUE) %>%
   mutate(across(c("PersonNumber", "TripNumber"), as.numeric))
 trips <- trips %>% select(-StartOutputArea,-EndOutputArea) %>% left_join(trips_newOAs)
@@ -42,7 +40,7 @@ RAW$indiv <- indiv
 RAW$trips <- trips
 
 # Locations (used for to look up LSOAs and MSOAs from OAs)
-locations <- readr::read_csv(paste0(INPUT_PATH,"OA_lookup.csv"), col_select = c("OA11CD","LSOA11CD","MSOA11CD")) %>%
+locations <- readr::read_csv("data/Manchester/gis/OA_lookup.csv", col_select = c("OA11CD","LSOA11CD","MSOA11CD")) %>%
   transmute(hh.OA = OA11CD, hh.LSOA = LSOA11CD, hh.MSOA = MSOA11CD)
 
 # Remove individual/household columns from trips dataset (can be added back later through left_join)
@@ -218,7 +216,7 @@ TRADS$raw = RAW
 TRADS$households = households
 TRADS$indiv = indiv
 TRADS$trips = trips
-saveRDS(TRADS,paste0(OUTPUT_PATH,"TRADS.rds"))
+saveRDS(TRADS,"data/Manchester/processed/TRADS.rds")
 
 ###### SAVE SAFE VERSION ######
 SAFE <- TRADS[names(TRADS) != "raw"]
@@ -236,7 +234,7 @@ SAFE$households <- SAFE$households %>%
   select(-hh.OA,-hh.LSOA,-hh.MSOA)
 
 # Save
-saveRDS(SAFE,paste0(OUTPUT_PATH,"TRADS_safe.rds"))
+saveRDS(SAFE,"data/Manchester/processed/TRADS_safe.rds")
 
 ###### CLEAN UP ######
-rm(RAW,households,indiv,trips,years,locations,SAFE,INPUT_PATH,OUTPUT_PATH,categorise_activity)
+rm(RAW,households,indiv,trips,years,locations,SAFE,categorise_activity)

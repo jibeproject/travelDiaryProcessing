@@ -1,10 +1,10 @@
-# Order of stuff
+# Order of processing data
 
 # Read raw data
 source("script/Manchester/read.R")
 
-# Export trip details to MATSim (if necessary)
-# source("script/Manchester/prepForMATSim.R")
+# Export trip details to include JAVA-based BE attributes
+source("script/Manchester/addXYcoords.R")
 
-# Add route attributes from MATSim
-source("script/Manchester/addMATSimAttributes.R")
+# Add BE / route data after JAVA-based analysis
+source("script/Manchester/addRouteData.R")
