@@ -9,7 +9,7 @@ left_join0 <- function(x, y, fill = 0L){
 }
 
 # Read trips file
-trips <- foreign::read.spss("data/Manchester/Yrs 6,7,8 HouseholdPersonTrip Academic.sav", to.data.frame = T)
+trips <- foreign::read.spss("data/Manchester/raw/Yrs 6,7,8 HouseholdPersonTrip Academic.sav", to.data.frame = T)
 
 # Aggregate purposes
 trips$purpose <- recode(trips$EndPurpose, 
@@ -41,7 +41,7 @@ test <- trips %>% count(EndPurpose, purpose) %>% arrange(desc(n))
 trips <- filter(trips, purpose != "work" & purpose != "home" & purpose != "education" & purpose != "business")
 
 # Add MSOA/LSOA
-OA_lookup <- readr::read_csv(paste0("data/Manchester/OA_lookup.csv"), col_select = c("OA11CD","LSOA11CD","MSOA11CD"))
+OA_lookup <- readr::read_csv(paste0("data/Manchester/gis/OA_lookup.csv"), col_select = c("OA11CD","LSOA11CD","MSOA11CD"))
 
 trips <- left_join(trips,OA_lookup,by = c("EndOutputArea" = "OA11CD")) %>% rename(EndMSOA = MSOA11CD, EndLSOA = LSOA11CD)
 
@@ -67,16 +67,13 @@ attractions_OA <- getAttractions(EndOutputArea)
 attractions_LSOA <- getAttractions(EndLSOA)
 attractions_MSOA <- getAttractions(EndMSOA)
 
-
-
 # Attach attractions to OAs
+OAs <- sf::st_read("data/Manchester/gis/zones/gm_oa.shp")
+LSOAs <- sf::st_read("data/Manchester/gis/zones/LSOA_studyArea.shp")
+MSOAs <- sf::st_read("data/Manchester/gis/zones/MSOA_studyArea.shp")
 
-OAs <- sf::st_read("~/Documents/manchester/zones/gm_oa.shp")
-LSOAs <- sf::st_read("~/Documents/manchester/zones/LSOA_studyArea.shp")
-MSOAs <- sf::st_read("~/Documents/manchester/zones/MSOA_studyArea.shp")
 
-
-attr_OAs <- OAs %>% select(-fid) %>%
+attr_OAs <- OAs %>% dplyr::select(-fid) %>%
   left_join(attractions_OA, by = c("OA11CD" = "EndOutputArea")) %>%
   mutate(across(where(is.integer),function(x) replace_na(x,0)))
 
@@ -90,7 +87,6 @@ attr_MSOAs <- MSOAs %>%
 
 
 # Write
-sf::st_write(attr_OAs,"result/attractions_OA.gpkg",delete_layer = TRUE)
-sf::st_write(attr_LSOAs,"result/attractions_LSOA.gpkg",delete_layer = TRUE)
-sf::st_write(attr_MSOAs,"result/attractions_MSOA.gpkg",delete_layer = TRUE)
-
+sf::st_write(attr_OAs,"result/local/attractions_OA.gpkg",delete_layer = TRUE)
+sf::st_write(attr_LSOAs,"result/local/attractions_LSOA.gpkg",delete_layer = TRUE)
+sf::st_write(attr_MSOAs,"result/local/attractions_MSOA.gpkg",delete_layer = TRUE)
