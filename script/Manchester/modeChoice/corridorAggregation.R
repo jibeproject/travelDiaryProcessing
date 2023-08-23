@@ -13,8 +13,8 @@ DETOUR = 0.25
 ALPHA = 9.2
 
 ########### GET SHORTEST/FASTEST PATH INFO ###########
-routesDist <- read_csv("TfGM/mandatory/routes/routesShort.csv")
-routesTime <- read_csv("TfGM/mandatory/routes/routesFast.csv")
+routesDist <- read_csv("TfGM/routesShort.csv")
+routesTime <- read_csv("TfGM/routesFast.csv")
 
 ########### COMPUTE AND AGGREGATE LINK DATA BASED ON DETOUR ###########
 
@@ -23,11 +23,11 @@ networkBike <- read_csv("TfGM/networkBike.csv")
 networkWalk <- read_csv("TfGM/networkWalk.csv")
 
 # READ IN LINK DATA
-bikeLinksShort <- readr::read_csv("TfGM/mandatory/corridors/corridorsBikeShort.csv") %>% left_join(networkBike)
-bikeLinksFast <- readr::read_csv("TfGM/mandatory/corridors/corridorsBikeFast.csv") %>% left_join(networkBike)
+bikeLinksShort <- readr::read_csv("TfGM/corridors/commuteBikeDist.csv") %>% left_join(networkBike)
+bikeLinksFast <- readr::read_csv("TfGM/corridors/commuteBikeTime.csv") %>% left_join(networkBike)
 
-walkLinksShort <- readr::read_csv("TfGM/mandatory/corridors/corridorsWalkShort.csv") %>% left_join(networkWalk)
-walkLinksFast <- readr::read_csv("TfGM/mandatory/corridors/corridorsWalkFast.csv") %>% left_join(networkWalk)
+walkLinksShort <- readr::read_csv("TfGM/corridors/commuteWalkDist.csv") %>% left_join(networkWalk)
+walkLinksFast <- readr::read_csv("TfGM/corridors/commuteWalkTime.csv") %>% left_join(networkWalk)
 
 # GROUP AND AGGREGATE
 aggregateBE <- function(linkData,costVar,modeName) {

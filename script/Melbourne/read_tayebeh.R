@@ -6,8 +6,23 @@ library(tidyverse)
 library(sf) # for spatial things
 library(lwgeom) # for advanced spatial things
 library(fitdistrplus) # for log normal distributions
-tripdata <- read.csv("data/Melbourne/DOT_VISTA/processed/T_VISTA_MAIN.csv",header=T, na.strings="N/A")
-df <- tripdata %>%
+
+households <- read_csv("data/Melbourne/raw/H_VISTA_1220_Coord.csv")
+persons <- read_csv("data/Melbourne/raw/P_VISTA_1220_Coord.csv")
+trips <- read_csv("data/Melbourne/raw/T_VISTA_1220_Coord.csv", col_names = TRUE, na = c("N/A",""),
+                      col_types = cols_only(tripid = "c", persid = "c", hhid = "c", tripno = "i", stops = "i",
+                                            origplace1 = "c", origpurp1 = "c", startime = "i", origsa4 = "i", origlong = "n", origlat = "n",
+                                            destplace1 = "c", destpurp1 = "c",  arrtime = "i", destsa4 = "i", destlong = "n", destlat = "n",
+                                            linkmode = "c", cumdist = "n", duration = "i",
+                                            mode1 = "c", mode2 = "c", mode3 = "c", mode4 = "c", mode5 = "c", mode6 = "c", mode7 = "c", mode8 = "c", mode9 = "c",
+                                            time1 = "i", time2 = "i", time3 = "i", time4 = "i", time5 = "i", time6 = "i", time7 = "i", time8 = "i", time9 = "i",
+                                            dist1 = "n", dist2 = "n", dist3 = "n", dist4 = "n", dist5 = "n", dist6 = "n", dist7 = "n", dist8 = "n", dist9 = "n",
+                                            wdtripwgt_sa3 = "n", wetripwgt_sa3 = "n"))
+
+trips <- trips %>%
+  filter(!is.na(tripid),
+         origlong != -2,origlong != -1,origlat != -1, origlat != -1,
+         destlong != -2,destlong != -1,destlat != -1, destlat != -1) %>%
   mutate(
     orig_long = origlong,
     orig_lat = origlat,
@@ -17,32 +32,27 @@ df <- tripdata %>%
 ############################################################################################################################################
 # filtering data based on geographic extent-----------------------------------------------------------------------------------------------------
 
+studyRegion <- st_read("data/Melbourne/gis/absRegionsReprojected.sqlite",layer="GCCSA_2016_AUST") %>% st_buffer(1)
 
-studyRegion <- st_read("~/Documents/melbourne/absRegionsReprojected.sqlite",layer="GCCSA_2016_AUST") %>%
-  st_buffer(1)
-
-orig_within_region <- df %>%
+origTest <- trips %>% 
+  dplyr::select(tripid,origlong,origlat) %>%
   st_as_sf(coords=c("origlong","origlat"),crs=4326) %>%
   st_transform(28355) %>%
   st_snap_to_grid(0.1) %>%
-  filter(lengths(st_intersects(., studyRegion,prepared=TRUE,sparse=TRUE)) > 0)
+  mutate(origInBoundary = lengths(st_intersects(., studyRegion,prepared=TRUE,sparse=TRUE)) > 0)
 
-dest_within_region <- df %>%
+destTest <- trips %>% 
+  dplyr::select(tripid,destlong,destlat) %>%
   st_as_sf(coords=c("destlong","destlat"),crs=4326) %>%
   st_transform(28355) %>%
   st_snap_to_grid(0.1) %>%
-  filter(lengths(st_intersects(., studyRegion,prepared=TRUE,sparse=TRUE)) > 0)
+  mutate(destInBoundary = lengths(st_intersects(., studyRegion,prepared=TRUE,sparse=TRUE)) > 0)
 
-#trips within greater Melbourne
-write.csv(orig_within_region,file = "data/Melbourne/DOT_VISTA/processed/origmelb_trips.csv",row.names= F)
-write.csv(dest_within_region,file = "data/Melbourne/DOT_VISTA/processed/destmelb_trips.csv",row.names=F)
-orig <- read_csv("data/Melbourne/DOT_VISTA/processed/origmelb_trips.csv", col_names = T,show_col_types = F)
-dest <- read_csv("data/Melbourne/DOT_VISTA/processed/destmelb_trips.csv", col_names = T,show_col_types = F)
-melbtrips <- semi_join(orig,dest, by="tripid")
+trips <- trips %>% inner_join(origTest) %>% inner_join(destTest)
+
+trips <- filter(trips,origInBoundary,destInBoundary)
 ############################################################################################################################################
 # joining trip data with household&person data-----------------------------------------------------------------------------------------------------
-hhdata <- read.csv("data/Melbourne/DOT_VISTA/processed/H_VISTA_1220_Coord.csv")
-pdata <- read.csv("data/Melbourne/DOT_VISTA/processed/P_VISTA_1220_Coord.csv")
 tripshh <- merge(melbtrips,hhdata, by="hhid")
 tripshhp <- merge(tripshh,pdata, by="persid")
 
