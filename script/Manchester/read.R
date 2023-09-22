@@ -87,7 +87,7 @@ indiv <- indiv %>%
             p.ID = Person_ID,
             p.female = na_if(Gender,"99") == "Female",
             p.age_group = Age,
-            p.ethnicity = na_if(Ethnicity,"99"),
+            p.ethnicity = Ethnicity,
             p.licence = DrivingLicence,
             p.seasonTicket = SeasonTicketPeriod,
             p.ws_workOver30h = WorkStatus2 != 0,
@@ -146,30 +146,6 @@ categorise_activity <- function(purpose) {
                 `NR` = "unknown")
 }
 
-categorise_purpose <- function(start,end) {
-  case_when(start == "unknown" | end == "unknown" ~ "unknown",
-            start == "B" | end == "B" ~ "business",
-            start == "W" & end == "W" ~ "business",
-            start == "H" & end == "W" ~ "work",
-            start == "H" & end == "B" ~ "business",
-            start == "H" & end == "E" ~ "education",
-            start == "H" & end == "A" ~ "escort",
-            start == "H" & end == "S" ~ "shop",
-            start == "H" & end == "R" ~ "recreation",
-            start == "H" & end == "O" ~ "other",
-            start == "H" & end == "RRT" ~ "rrt",
-            end == "H" & start == "W" ~ "work",
-            end == "H" & start == "B" ~ "business",
-            end == "H" & start == "E" ~ "education",
-            end == "H" & start == "A" ~ "escort",
-            end == "H" & start == "S" ~ "shop",
-            end == "H" & start == "R" ~ "recreation",
-            end == "H" & start == "O" ~ "other",
-            end == "H" & start == "RRT" ~ "rrt",
-            start == "W" | end == "W" ~ "nhb work",
-            TRUE ~ "nhb other")
-}
-
 trips <- trips %>% 
   transmute(hh.id = IDNumber,
             p.id = PersonNumber,
@@ -178,12 +154,12 @@ trips <- trips %>%
             t.endPurpose = EndPurpose,
             t.origin = categorise_activity(t.startPurpose),
             t.destination = categorise_activity(t.endPurpose),
-            t.purpose = categorise_purpose(t.origin,t.destination),
             t.startOA = StartOutputArea,
             t.endOA = EndOutputArea,
             t.departureTime = round(StartTime),
             t.arrivalTime = round(EndTime),
             t.travelTime = round(TravelTime),
+            t.tripLength = TripLength,
             t.m_walk = Mode1 != 0,
             t.m_cycle = Mode2 != 0,
             t.m_carDriver = Mode3 != 0 | Mode4 != 0,
@@ -260,7 +236,6 @@ SAFE$households <- SAFE$households %>%
 
 # Save
 saveRDS(SAFE,"data/Manchester/processed/TRADS_safe.rds")
-saveRDS(SAFE,"data/Manchester/processed/TRADS_safe_v2.rds",version = 2)
 
 ###### CLEAN UP ######
 rm(RAW,households,indiv,trips,years,locations,SAFE,categorise_activity)
