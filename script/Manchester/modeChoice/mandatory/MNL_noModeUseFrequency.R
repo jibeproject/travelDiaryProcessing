@@ -22,8 +22,8 @@ trips =  trips%>% within({
   
   
   
-  p.age_group_agg = recode(p.age_group, `5-9` = "5_14", `10-14` = "5_14", `15-19` = "15_24", 
-                           `20-24` = "15_24", `25-29` = "25_39", `30-34` = "25_39", `35-39` = "25_39",
+  p.age_group_agg = recode(p.age_group, `5-9` = "5_24", `10-14` = "5_24", `15-19` = "5_24", 
+                           `20-24` = "5_24", `25-29` = "25_39", `30-34` = "25_39", `35-39` = "25_39",
                            `40-44` = "40_69", `45-49` = "40_69", `50-54` = "40_69", `55-59` = "40_69",
                            `60-64` = "40_69", `65-69` = "40_69", `70-74` = "70", `75-79` = "70",
                            `80-84` = "70", `85+` = "70",.default = "NA")
@@ -44,10 +44,31 @@ trips =  trips%>% within({
   carP_timeHBE = case_when(t.full_purpose=="HBE" ~ carP_time, TRUE ~ 0)
   pt_timeHBW = case_when(t.full_purpose=="HBW" ~ pt_time, TRUE ~ 0)
   pt_timeHBE = case_when(t.full_purpose=="HBE" ~ pt_time, TRUE ~ 0)
+  
   bike_vgviDay = case_when(t.departureTime_day ~ bike_vgvi, TRUE ~ 0)
   walk_vgviDay = case_when(t.departureTime_day ~ walk_vgvi, TRUE ~ 0)
   bike_lightNight = case_when(!t.departureTime_day ~ bike_lightsDensity, TRUE ~ 0)
   walk_lightNight = case_when(!t.departureTime_day ~ walk_lightsDensity, TRUE ~ 0)
+  
+  bike_stressLinkLogDistance = bike_stressLink * bike_logDist
+  
+  bike_stressJctDistance = bike_stressJct * bike_dist
+  
+  bike_crimeDistance = bike_crime * bike_dist
+  
+  bike_lightNightLogDistance = bike_lightNight * bike_logDist
+  
+  walk_vgviDay = case_when(t.departureTime_day ~ walk_vgvi, TRUE ~ 0)
+  walk_lightNight = case_when(!t.departureTime_day ~ walk_lightsDensity, TRUE ~ 0)
+  
+  walk_stressLinkDistance2km = case_when(walk_dist <= 2000 ~ walk_stressLink, TRUE ~ 0)
+  walk_stressLinkDistance = walk_stressLink * walk_dist
+  
+  walk_stressJctDistance = walk_stressJct * walk_dist
+  
+  walk_crimeDistance = walk_crime * walk_dist
+  
+  walk_vgviDayDistance1km = case_when(walk_dist <= 1000 ~ walk_vgviDay, TRUE ~ 0)
 })
 
 trips = trips%>%filter(t.m_main_apollo!="X")
@@ -62,22 +83,22 @@ trips = trips%>%filter(t.full_purpose%in%c("HBW","HBE"))
 ####                  CORRELATION TEST                  #############
 # ################################################################# #
 
-walkCor = cor(trips%>%select('walk_dist','walk_logDist','walk_vgvi','walk_POIs','walk_negPOIs','walk_shannon',
-                       'walk_stressJct','walk_stressLink','walk_crime','walk_lights','walk_lightsDensity'), 
-           use = "complete.obs")
-corrplot::corrplot(walkCor, method = 'number')
-
-bikeCor = cor(trips%>%select('bike_dist','bike_logDist','bike_vgvi','bike_POIs','bike_negPOIs','bike_shannon',
-                       'bike_stressJct','bike_stressLink','bike_crime','bike_lights','bike_lightsDensity'), 
-           use = "complete.obs")
-corrplot::corrplot(bikeCor, method = 'number')
-
+# walkCor = cor(trips%>%select('walk_dist','walk_logDist','walk_vgvi','walk_POIs','walk_negPOIs','walk_shannon',
+#                        'walk_stressJct','walk_stressLink','walk_crime','walk_lights','walk_lightsDensity'),
+#            use = "complete.obs")
+# corrplot::corrplot(walkCor, method = 'number')
+# 
+# bikeCor = cor(trips%>%select('bike_dist','bike_logDist','bike_vgvi','bike_POIs','bike_negPOIs','bike_shannon',
+#                        'bike_stressJct','bike_stressLink','bike_crime','bike_lights','bike_lightsDensity'),
+#            use = "complete.obs")
+# corrplot::corrplot(bikeCor, method = 'number')
+# 
 
 # ################################################################# #
 ####      LOAD LIBRARY AND DEFINE CORE SETTINGS                  ####
 # ################################################################# #
-outputDir <- "result/Manchester/mandatory/"
-scenario = "mnl_noModeUse_v3"
+outputDir <- "result/Manchester/mandatory/tests/"
+scenario = "mnl_noModeUse_v4"
 
 ### Load Apollo library
 library(apollo)
@@ -93,7 +114,7 @@ apollo_control = list(
   modelDescr = "MNL",
   panelData  = FALSE,
   indivID    = "t.ID",
-  nCores     = 10,
+  nCores     = 16,
   outputDirectory = outputDir
 )
 
@@ -104,12 +125,12 @@ apollo_control = list(
 options =                                                     c("carD" , "carP", "pt", "bike", "walk")
 #parameter names should be the same as those in the database
 beta_gv_matrix =  as.matrix(data.frame(asc                   = c( 1     , 0     , 0    , 0      ,0),
-                                       p.age_group_agg_5_14  = c( 1     , 0     , 0    , 0      ,0),
-                                       p.age_group_agg_15_24 = c( 1     , 0     , 0    , 0      ,0),
+                                       #p.age_group_agg_5_14  = c( 1     , 0     , 0    , 0      ,0),
+                                       p.age_group_agg_5_24 = c( 1     , 0     , 0    , 0      ,0),
                                        p.age_group_agg_25_39 = c( 1     , 0     , 0    , 0      ,0),
                                        #p.age_group_agg_40_69 = c( 1     , 0     , 0    , 0      ,0),
                                        #p.age_group_agg_70    = c( 1     , 0     , 0    , 0      ,0),
-                                       p.female_FALSE        = c( 1     , 0     , 0    , 0      ,0),
+                                       p.female_FALSE        = c( 1     , 0     , 0    , 0      ,1),
                                        #p.occupation_worker   = c( 1     , 0     , 0    , 0      ,0),
                                        #p.occupation_student  = c( 1     , 0     , 0    , 0      ,0),
                                        hh.cars_gr_0          = c( 1     , 0     , 0    , 0      ,0),
@@ -127,16 +148,17 @@ beta_av_matrix =  as.matrix(data.frame(time                  = c( 1     , 1     
                                        timeHBW               = c( 1     , 1     , 0     , 0     ,0),
                                        #timeHBE               = c( 1     , 1     , 0     , 0     ,0),
                                        logDist               = c( 0     , 0     , 0     , 1     ,1),
-                                       stressLink            = c( 0     , 0     , 0     , 1     ,0),
-                                       #stressJct             = c( 0     , 0     , 0     , 1     ,1),
-                                       #vgviDay               = c( 0     , 0     , 0     , 1     ,1),
+                                       #stressLink            = c( 0     , 0     , 0     , 1     ,1),
+                                       stressLinkLogDistance = c( 0     , 0     , 0     , 1     ,0),
+                                       stressLinkDistance    = c( 0     , 0     , 0     , 0     ,1),
+                                       stressJctDistance     = c( 0     , 0     , 0     , 1     ,1),
                                        shannon               = c( 0     , 0     , 0     , 1     ,1),
-                                       # POIs                 = c( 0     , 0     , 0     , 1     ,1),
+                                       #POIs                  = c( 0     , 0     , 0     , 1     ,1),
                                        # negPOIs              = c( 0     , 0     , 0     , 1     ,1),
-                                       #crime                 = c( 0     , 0     , 0     , 1     ,1),
-                                       #lightNight            = c( 0     , 0     , 0     , 1     ,1),
+                                       #vgviDay               = c( 0     , 0     , 0     , 0     ,1),
+                                       crimeDistance         = c( 0     , 0     , 0     , 0     ,1),
+                                       lightNightLogDistance = c( 0     , 0     , 0     , 1     ,0),
                                        row.names = options))
-
 
 beta_gv = apply(expand.grid(options,colnames(beta_gv_matrix)), 1, paste, collapse=".")
 beta_av = apply(expand.grid(options,colnames(beta_av_matrix))%>%mutate(Var1 = paste(Var1,Var1,sep = ".")), 1, paste, collapse="_")[as.numeric(beta_av_matrix) == 1]
@@ -149,27 +171,24 @@ database = trips[,c("t.ID","t.m_main_apollo",paste("av",options,sep = "_"),gsub(
 
 
 # Eliminate data with NA results,#check if mode share pattern changed a lot after removing NA
-modeshare_before=database%>%
-  group_by(t.m_main_apollo)%>%
-  summarise(n=n())%>%
-  mutate(share=n/sum(n),data="before")
-
-originalLength = nrow(database)
+# modeshare_before=database%>%
+#   group_by(t.m_main_apollo)%>%
+#   summarise(n=n())%>%
+#   mutate(share=n/sum(n),data="before")
+# 
+# originalLength = nrow(database)
 database = na.omit(database)
-newLength = nrow(database)
-print(paste(originalLength - newLength,"NA rows eliminated. New dataset has",newLength,"rows."))
-
-modeshare_after=database%>%
-  group_by(t.m_main_apollo)%>%
-  summarise(n=n())%>%
-  mutate(share=n/sum(n),data="after")
-modeshare=rbind(modeshare_before,modeshare_after)
-ggplot(modeshare,aes(x=data,y=share,fill=t.m_main_apollo))+geom_bar(position ="fill", stat = "identity")
-
-rm(originalLength,newLength, modeshare_before,modeshare_after,modeshare)
-
-# Print Useful information
-str(database)
+# newLength = nrow(database)
+# print(paste(originalLength - newLength,"NA rows eliminated. New dataset has",newLength,"rows."))
+# 
+# modeshare_after=database%>%
+#   group_by(t.m_main_apollo)%>%
+#   summarise(n=n())%>%
+#   mutate(share=n/sum(n),data="after")
+# modeshare=rbind(modeshare_before,modeshare_after)
+# ggplot(modeshare,aes(x=data,y=share,fill=t.m_main_apollo))+geom_bar(position ="fill", stat = "identity")
+# 
+# rm(originalLength,newLength, modeshare_before,modeshare_after,modeshare)
 
 ### Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta,
 ###  use apollo_beta_fixed = c() if none
@@ -196,7 +215,7 @@ calcV <- function(beta) {
   return(val)
 }
 
-apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate_settings$bootstrapSE=TRUE"){
   
   ### Attach inputs and detach after function exit
   apollo_attach(apollo_beta, apollo_inputs)
@@ -237,6 +256,9 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   
   ### Compute probabilities using MNL model
   P[['model']] = apollo_nl(nl_settings, functionality)
+  
+  ### Apply weights
+  #P = apollo_weighting(P, apollo_inputs, functionality)
   
   ### Prepare and return outputs of function
   P = apollo_prepareProb(P, apollo_inputs, functionality)
@@ -288,7 +310,9 @@ model_sig <- case_when(model_pValue <= 0.001 ~ "***",
                        model_pValue <= 0.05 ~ "*",
                        model_pValue <= 0.1 ~ ".",
                        TRUE ~ "")
-estimateValues <- paste(round(model_estimates,4),"[",round(model_pValue,3),model_sig,"]")
+estimateValues <- paste(round(model_estimates,3),"[",round(model_pValue,2),model_sig,"]")
+write.table(estimateValues[(length(estimateValues)-length(beta_av)+1):length(estimateValues)],"clipboard",row.names = F,col.names = F)
+
 names(estimateValues) = names(apollo_beta)
 
 
