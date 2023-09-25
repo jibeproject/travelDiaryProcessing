@@ -42,27 +42,44 @@ trips =  trips%>% within({
   walk_vgviDay = case_when(t.departureTime_day ~ walk_vgvi, TRUE ~ 0)
   bike_lightNight = case_when(!t.departureTime_day ~ bike_lightsDensity, TRUE ~ 0)
   walk_lightNight = case_when(!t.departureTime_day ~ walk_lightsDensity, TRUE ~ 0)
+  
+  bike_stressLinkLogDistance = bike_stressLink * bike_logDist
+  
+  bike_shannonDistance = bike_shannon * bike_dist
+  
+  bike_vgviDayLogDistance = bike_vgviDay * bike_logDist
+  
+  bike_lightNightLogDistance = bike_lightNight * bike_logDist
+  
+  walk_vgviDay = case_when(t.departureTime_day ~ walk_vgvi, TRUE ~ 0)
+  walk_lightNight = case_when(!t.departureTime_day ~ walk_lightsDensity, TRUE ~ 0)
+  
+  walk_stressLinkDistance = walk_stressLink * walk_dist
+  
+  walk_stressJctDistance = walk_stressJct * walk_dist
+  
+  walk_crimeDistance = walk_crime * walk_dist
 })
 
-trips = trips%>%filter(t.m_main_apollo!="X" & bike_logDist != -Inf & walk_logDist != -Inf)
+trips = trips%>%filter(t.m_main_apollo!="X")
 
 trips = trips%>%dummy_cols(select_columns = c("p.age_group_agg","p.female","p.occupation",
                                               "hh.cars_gr","hh.income_agg",
                                               "t.departureTime_gr","t.full_purpose"))
 
-trips = trips%>%filter(t.full_purpose%in%c("HBS","HBR","HBO","NHBO","NHBW"))
+trips = trips%>%filter(!t.full_purpose%in%c("HBW","HBE"))
 
 # ################################################################# #
 ####                  CORRELATION TEST                  #############
 # ################################################################# #
 
 walkCor = cor(trips%>%select('walk_dist','walk_logDist','walk_vgvi','walk_POIs','walk_negPOIs','walk_shannon',
-                       'walk_stressJct','walk_stressLink','walk_crime','walk_lights','walk_lightsDensity'), 
+                       'walk_stressJctDistance','walk_stressLinkDistance','walk_crimeDistance','walk_lights','walk_lightsDensity'),
            use = "complete.obs")
 corrplot::corrplot(walkCor, method = 'number')
 
-bikeCor = cor(trips%>%select('bike_dist','bike_logDist','bike_vgvi','bike_POIs','bike_negPOIs','bike_shannon',
-                       'bike_stressJct','bike_stressLink','bike_crime','bike_lights','bike_lightsDensity'), 
+bikeCor = cor(trips%>%select('bike_dist','bike_logDist','bike_vgviDayLogDistance','bike_POIs','bike_negPOIs','bike_shannonDistance',
+                       'bike_stressJct','bike_stressLinkLogDistance','bike_crime','bike_lightNight','bike_lightsDensity'),
            use = "complete.obs")
 corrplot::corrplot(bikeCor, method = 'number')
 
@@ -70,8 +87,8 @@ corrplot::corrplot(bikeCor, method = 'number')
 # ################################################################# #
 ####      LOAD LIBRARY AND DEFINE CORE SETTINGS                  ####
 # ################################################################# #
-outputDir <- "result/Manchester/discretionary/"
-scenario = "mnl_noModeUse_v3"
+outputDir <- "result/Manchester/discretionary/tests/"
+scenario = "mnl_noModeUse_v5"
 
 ### Load Apollo library
 library(apollo)
@@ -87,7 +104,7 @@ apollo_control = list(
   modelDescr = "MNL",
   panelData  = FALSE,
   indivID    = "t.ID",
-  nCores     = 10,
+  nCores     = 16,
   outputDirectory = outputDir
 )
 
@@ -103,7 +120,7 @@ beta_gv_matrix =  as.matrix(data.frame(asc                   = c( 1     , 0     
                                        p.age_group_agg_25_39 = c( 1     , 0     , 0    , 0      ,0),
                                        #p.age_group_agg_40_69 = c( 1     , 0     , 0    , 0      ,0),
                                        #p.age_group_agg_70    = c( 1     , 0     , 0    , 0      ,0),
-                                       p.female_FALSE        = c( 1     , 0     , 0    , 0      ,0),
+                                       p.female_FALSE        = c( 1     , 0     , 0    , 0      ,1),
                                        #p.occupation_worker   = c( 1     , 0     , 0    , 0      ,0),
                                        #p.occupation_student  = c( 1     , 0     , 0    , 0      ,0),
                                        hh.cars_gr_0          = c( 1     , 0     , 0    , 0      ,0),
@@ -119,16 +136,19 @@ beta_gv_matrix =  as.matrix(data.frame(asc                   = c( 1     , 0     
 
 beta_av_matrix =  as.matrix(data.frame(time                  = c( 1     , 1     , 1     , 0     ,0),
                                        logDist               = c( 0     , 0     , 0     , 1     ,1),
-                                       stressLink            = c( 0     , 0     , 0     , 1     ,1),
-                                       #stressJct             = c( 0     , 0     , 0     , 1     ,1),
-                                       vgviDay               = c( 0     , 0     , 0     , 1     ,1),
-                                       #shannon               = c( 0     , 0     , 0     , 1     ,1),
-                                       # POIs                 = c( 0     , 0     , 0     , 1     ,1),
+                                       #stressLink            = c( 0     , 0     , 0     , 1     ,1),
+                                       stressLinkLogDistance = c( 0     , 0     , 0     , 1     ,0),
+                                       stressLinkDistance    = c( 0     , 0     , 0     , 0     ,1),
+                                       stressJctDistance     = c( 0     , 0     , 0     , 0     ,1),
+                                       #shannon               = c( 0     , 0     , 0     , 0     ,1),
+                                       #shannonDistance       = c( 0     , 0     , 0     , 1     ,0),
+                                       #POIs                  = c( 0     , 0     , 0     , 1     ,1),
                                        # negPOIs              = c( 0     , 0     , 0     , 1     ,1),
-                                       #crime                 = c( 0     , 0     , 0     , 1     ,1),
-                                       #lightNight            = c( 0     , 0     , 0     , 1     ,1),
+                                       # vgviDay               = c( 0     , 0     , 0     , 0     ,1),
+                                       vgviDayLogDistance    = c( 0     , 0     , 0     , 1     ,0),
+                                       crimeDistance         = c( 0     , 0     , 0     , 0     ,1),
+                                       lightNight            = c( 0     , 0     , 0     , 1     ,0),
                                        row.names = options))
-
 
 beta_gv = apply(expand.grid(options,colnames(beta_gv_matrix)), 1, paste, collapse=".")
 beta_av = apply(expand.grid(options,colnames(beta_av_matrix))%>%mutate(Var1 = paste(Var1,Var1,sep = ".")), 1, paste, collapse="_")[as.numeric(beta_av_matrix) == 1]
@@ -141,27 +161,24 @@ database = trips[,c("t.ID","t.m_main_apollo",paste("av",options,sep = "_"),gsub(
 
 
 # Eliminate data with NA results,#check if mode share pattern changed a lot after removing NA
-modeshare_before=database%>%
-  group_by(t.m_main_apollo)%>%
-  summarise(n=n())%>%
-  mutate(share=n/sum(n),data="before")
-
-originalLength = nrow(database)
+# modeshare_before=database%>%
+#   group_by(t.m_main_apollo)%>%
+#   summarise(n=n())%>%
+#   mutate(share=n/sum(n),data="before")
+# 
+# originalLength = nrow(database)
 database = na.omit(database)
-newLength = nrow(database)
-print(paste(originalLength - newLength,"NA rows eliminated. New dataset has",newLength,"rows."))
-
-modeshare_after=database%>%
-  group_by(t.m_main_apollo)%>%
-  summarise(n=n())%>%
-  mutate(share=n/sum(n),data="after")
-modeshare=rbind(modeshare_before,modeshare_after)
-ggplot(modeshare,aes(x=data,y=share,fill=t.m_main_apollo))+geom_bar(position ="fill", stat = "identity")
-
-rm(originalLength,newLength, modeshare_before,modeshare_after,modeshare)
-
-# Print Useful information
-str(database)
+# newLength = nrow(database)
+# print(paste(originalLength - newLength,"NA rows eliminated. New dataset has",newLength,"rows."))
+# 
+# modeshare_after=database%>%
+#   group_by(t.m_main_apollo)%>%
+#   summarise(n=n())%>%
+#   mutate(share=n/sum(n),data="after")
+# modeshare=rbind(modeshare_before,modeshare_after)
+# ggplot(modeshare,aes(x=data,y=share,fill=t.m_main_apollo))+geom_bar(position ="fill", stat = "identity")
+# 
+# rm(originalLength,newLength, modeshare_before,modeshare_after,modeshare)
 
 ### Vector with names (in quotes) of parameters to be kept fixed at their starting value in apollo_beta,
 ###  use apollo_beta_fixed = c() if none
@@ -188,7 +205,7 @@ calcV <- function(beta) {
   return(val)
 }
 
-apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate"){
+apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimate_settings$bootstrapSE=TRUE"){
   
   ### Attach inputs and detach after function exit
   apollo_attach(apollo_beta, apollo_inputs)
@@ -229,6 +246,9 @@ apollo_probabilities=function(apollo_beta, apollo_inputs, functionality="estimat
   
   ### Compute probabilities using MNL model
   P[['model']] = apollo_nl(nl_settings, functionality)
+  
+  ### Apply weights
+  #P = apollo_weighting(P, apollo_inputs, functionality)
   
   ### Prepare and return outputs of function
   P = apollo_prepareProb(P, apollo_inputs, functionality)
@@ -280,7 +300,9 @@ model_sig <- case_when(model_pValue <= 0.001 ~ "***",
                        model_pValue <= 0.05 ~ "*",
                        model_pValue <= 0.1 ~ ".",
                        TRUE ~ "")
-estimateValues <- paste(round(model_estimates,4),"[",round(model_pValue,3),model_sig,"]")
+estimateValues <- paste(round(model_estimates,3),"[",round(model_pValue,2),model_sig,"]")
+write.table(estimateValues[(length(estimateValues)-length(beta_av)+1):length(estimateValues)],"clipboard",row.names = F,col.names = F)
+
 names(estimateValues) = names(apollo_beta)
 
 
@@ -296,3 +318,60 @@ estimate_coeffsMatrix = rbind(estimate_coeffsMatrix,c("r2",r,"","",""))
 print(estimate_coeffsMatrix, quote = FALSE)
 write.csv(estimate_coeffsMatrix,file=paste(outputDir, scenario,".csv",sep = ""),row.names=TRUE,quote = FALSE) 
 
+
+#BE investigation
+trips=trips%>% within({ 
+  bike_stressLink_agg = case_when(bike_stressLink > 0 &bike_stressLink <= 0.2 ~ "bike_stressLink_0_2",
+                                  bike_stressLink > 0.2 &bike_stressLink <= 0.4 ~ "bike_stressLink_0_4",
+                                  bike_stressLink > 0.4 &bike_stressLink <= 0.6 ~ "bike_stressLink_0_6",
+                                  bike_stressLink > 0.6 &bike_stressLink <= 0.8 ~ "bike_stressLink_0_8",
+                                  TRUE ~ "bike_stressLink_1_0")
+  
+  walk_stressLink_agg = case_when(walk_stressLink > 0 &walk_stressLink <= 0.2 ~ "walk_stressLink_0_2",
+                                  walk_stressLink > 0.2 &walk_stressLink <= 0.4 ~ "walk_stressLink_0_4",
+                                  walk_stressLink > 0.4 &walk_stressLink <= 0.6 ~ "walk_stressLink_0_6",
+                                  walk_stressLink > 0.6 &walk_stressLink <= 0.8 ~ "walk_stressLink_0_8",
+                                  TRUE ~ "walk_stressLink_1_0")
+  
+  bike_stressJct_agg = case_when(bike_stressJct > 0 &bike_stressJct <= 0.02 ~ "bike_stressJct_00_2",
+                                  bike_stressJct > 0.02 &bike_stressJct <= 0.04 ~ "bike_stressJct_00_4",
+                                  bike_stressJct > 0.04 &bike_stressJct <= 0.06 ~ "bike_stressJct_00_6",
+                                  bike_stressJct > 0.06 &bike_stressJct <= 0.08 ~ "bike_stressJct_00_8",
+                                  TRUE ~ "bike_stressJct_0_1")
+  
+  walk_stressJct_agg = case_when(walk_stressJct > 0 &walk_stressJct <= 0.02 ~ "walk_stressJct_00_2",
+                                  walk_stressJct > 0.02 &walk_stressJct <= 0.04 ~ "walk_stressJct_00_4",
+                                  walk_stressJct > 0.04 &walk_stressJct <= 0.06 ~ "walk_stressJct_00_6",
+                                  walk_stressJct > 0.06 &walk_stressJct <= 0.08 ~ "walk_stressJct_00_8",
+                                  TRUE ~ "walk_stressJct_0_1")})
+write.table(trips%>%
+              group_by(bike_stressLink_agg,t.m_main_apollo)%>%
+              summarise(n=n())%>%
+              mutate(share=n/sum(n))%>%
+              select(bike_stressLink_agg,t.m_main_apollo,share)%>%
+              spread(t.m_main_apollo,share),
+            "clipboard",row.names = F,sep = "\t")
+
+write.table(trips%>%
+              group_by(walk_stressLink_agg,t.m_main_apollo)%>%
+              summarise(n=n())%>%
+              mutate(share=n/sum(n))%>%
+              select(walk_stressLink_agg,t.m_main_apollo,share)%>%
+              spread(t.m_main_apollo,share),
+            "clipboard",row.names = F,sep = "\t")
+
+write.table(trips%>%
+              group_by(walk_stressJct_agg,t.m_main_apollo)%>%
+              summarise(n=n())%>%
+              mutate(share=n/sum(n))%>%
+              select(walk_stressJct_agg,t.m_main_apollo,share)%>%
+              spread(t.m_main_apollo,share),
+            "clipboard",row.names = F,sep = "\t")
+
+write.table(trips%>%
+              group_by(bike_stressJct_agg,t.m_main_apollo)%>%
+              summarise(n=n())%>%
+              mutate(share=n/sum(n))%>%
+              select(bike_stressJct_agg,t.m_main_apollo,share)%>%
+              spread(t.m_main_apollo,share),
+            "clipboard",row.names = F,sep = "\t")
