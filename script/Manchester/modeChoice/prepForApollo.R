@@ -116,7 +116,7 @@ trips = trips%>%
 
 
 ################### Attach built environment variables ##################
-corridor=read_csv("data/manchester/corridor/AllShort92.csv")
+corridor=read_csv("data/manchester/corridor/tripsCorridorShort.csv")
 
 trips = trips%>%
   left_join(select(corridor,-c("car_time")),by=c("hh.id"="IDNumber","p.id"="PersonNumber","t.id"="TripNumber"))
@@ -176,7 +176,8 @@ trips = trips%>%
 ################### Set availability of modes ##################
 
 trips = trips%>%
-  mutate(av_carD = 1,
+  mutate(av_carD = case_when(p.age_group=="5-9"|p.age_group=="10-14" ~ 0,
+                             TRUE ~ 1),
          av_carP = 1,
          av_pt = case_when(ptTravelTime_sec == 0 ~ 0,
                            TRUE ~ 1),
@@ -184,6 +185,15 @@ trips = trips%>%
          av_walk = 1)
 
 trips = trips%>%filter(!(trips$av_pt==0&trips$t.m_main_agg=="Pt"))
+
+################### Attach new hh variables ##################
+trips <- trips %>% left_join(TRADS$indiv %>% group_by(hh.id) %>% summarise(hh.adults = sum(p.age_group!="5-9"&p.age_group!="10-14"),
+                                                                        hh.children5to9 = sum(p.age_group=="5-9"),
+                                                                        hh.children10to14 = sum(p.age_group=="10-14"),
+                                                                        hh.children = hh.children5to9 + hh.children10to14,
+                                                                        hh.size = hh.adults + hh.children5to9 + hh.children10to14,
+                                                                        hh.workers = sum(p.ws_workOver30h|p.ws_work16to30h|p.ws_workUnder16h) ))
+
 
 ################### Re-coding variables ##################
 trips=trips %>% within({ 
@@ -221,5 +231,4 @@ trips=trips %>% within({
 
 
 
-write.csv(trips,file = "data/Manchester/processed/tripsForApollo.csv",row.names=FALSE)
-
+write.csv(trips,file = "data/manchester/processed/tripsForApollo.csv",row.names=FALSE)

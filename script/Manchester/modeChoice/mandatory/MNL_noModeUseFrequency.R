@@ -98,7 +98,7 @@ trips = trips%>%filter(t.full_purpose%in%c("HBW","HBE"))
 ####      LOAD LIBRARY AND DEFINE CORE SETTINGS                  ####
 # ################################################################# #
 outputDir <- "result/Manchester/mandatory/tests/"
-scenario = "mnl_noModeUse_v4"
+scenario = "mnl_noModeUse_v4_newCorridor"
 
 ### Load Apollo library
 library(apollo)
@@ -125,8 +125,8 @@ apollo_control = list(
 options =                                                     c("carD" , "carP", "pt", "bike", "walk")
 #parameter names should be the same as those in the database
 beta_gv_matrix =  as.matrix(data.frame(asc                   = c( 1     , 0     , 0    , 0      ,0),
-                                       p.age_group_agg_5_14  = c( 1     , 0     , 0    , 0      ,0),
-                                       p.age_group_agg_15_24 = c( 1     , 0     , 0    , 0      ,0),
+                                       #p.age_group_agg_5_14  = c( 1     , 0     , 0    , 0      ,0),
+                                       p.age_group_agg_5_24 = c( 1     , 0     , 0    , 0      ,0),
                                        p.age_group_agg_25_39 = c( 1     , 0     , 0    , 0      ,0),
                                        #p.age_group_agg_40_69 = c( 1     , 0     , 0    , 0      ,0),
                                        #p.age_group_agg_70    = c( 1     , 0     , 0    , 0      ,0),
