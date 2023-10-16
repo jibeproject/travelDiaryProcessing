@@ -24,12 +24,10 @@ networkBike <- read_csv("data/manchester/corridor/networkBike.csv")
 networkWalk <- read_csv("data/manchester/corridor/networkWalk.csv")
 
 networkWalk <- networkWalk %>%
-  mutate(streetLightsDensity = pmin(1/15,streetLights / length),
-         crimeDensity=pmin(1/4,crime / length))
+  mutate(streetLightsDensity = pmin(1/15,streetLights / length))
 
 networkBike <- networkBike %>%
-  mutate(streetLightsDensity = pmin(1/15,streetLights / length),
-         crimeDensity=pmin(1/4,crime / length))
+  mutate(streetLightsDensity = pmin(1/15,streetLights / length))
 
 # READ IN LINK DATA
 bikeLinksShort <- rbind(read_csv("data/manchester/corridor/commuteBikeShort.csv"),
@@ -51,16 +49,16 @@ aggregateBE <- function(linkData,costVar,modeName) {
     mutate(df = exp(-1 * ALPHA * detour),
            wt = df * !!enquo(costVar)) %>%
     group_by(IDNumber,PersonNumber,TripNumber) %>%
-    summarise(sumWt = sum(wt,na.rm = T),
-              stressLink = sum(stressLink * wt,na.rm = T) / sumWt,
-              stressJct = sum(stressJct * df,na.rm = T) / sumWt,
-              vgvi = sum(vgvi * wt,na.rm = T) / sumWt,
-              shannon = sum(shannon * wt,na.rm = T) / sumWt,
-              POIs = sum(POIs * df,na.rm = T) / sumWt,
-              negPOIs = sum(negPOIs * df,na.rm = T) / sumWt,
-              crime = sum(crime * df,na.rm = T) / sumWt,
-              lights = sum(streetLights * df,na.rm = T) / sumWt,
-              lightsDensity = sum(streetLightsDensity * wt,na.rm = T) / sumWt) %>%
+    summarise(sumWt = sum(wt),
+              stressLink = sum(stressLink * wt) / sumWt,
+              stressJct = sum(stressJct * df) / sumWt,
+              vgvi = sum(vgvi * wt) / sumWt,
+              shannon = sum(shannon * wt) / sumWt,
+              POIs = sum(POIs * df) / sumWt,
+              negPOIs = sum(negPOIs * df) / sumWt,
+              crime = sum(crime * df) / sumWt,
+              lights = sum(streetLights * df) / sumWt,
+              lightsDensity = sum(streetLightsDensity * wt) / sumWt) %>%
     ungroup() %>%
     dplyr::select(-sumWt) %>%
     rename_with(~paste(modeName,.x,sep="_"),.cols = c(stressLink,stressJct,vgvi,shannon,POIs,negPOIs,crime,lights,lightsDensity))
@@ -75,5 +73,5 @@ resultShort <- routesDist %>% right_join(bikeAggShort) %>% right_join(walkAggSho
 resultFast <- routesTime %>% right_join(bikeAggFast) %>% right_join(walkAggFast)
 
 # Save to csv
-write_csv(resultShort,"data/manchester/corridor/tripsCorridorShort.csv")
-write_csv(resultFast,"data/manchester/corridor/tripsCorridorFast.csv")
+write_csv(resultShort,"data/manchester/corridor/AllShort92.csv")
+write_csv(resultFast,"data/manchester/corridor/AllFast92.csv")
