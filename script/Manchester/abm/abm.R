@@ -1,30 +1,9 @@
 library(tidyverse)
 rm(list = ls())
 
-# TODO: don't need to do all this. Use something else to determine whether O/D is within manchester boundary
-routeData <- readr::read_csv("data/Manchester/processed/abm.csv",na = c("null",""), col_types = "ciilllllccclddd") %>%
-  transmute(hh.id = IDNumber,
-            p.id = PersonNumber, 
-            t.id = TripNumber,
-            t.homeWithinBoundary = HomeWithinBoundary,
-            t.originWithinBoundary = OriginWithinBoundary, 
-            t.destinationWithinBoundary = DestinationWithinBoundary,
-            t.sameHomeAndDest = SameHomeAndDest,
-            t.sameOrigAndDest = SameOrigAndDest,
-            Route,dist) %>%
-  pivot_wider(names_from = Route, values_from = dist) %>%
-  rename(t.OD.beeline = beeline_od,
-         t.HD.beeline = beeline_hd,
-         t.OD.car_dist = car_od,
-         t.HD.car_dist = car_hd,
-         t.OD.walk_dist = walk_od,
-         t.HD.walk_dist = walk_hd)
-
-
 trips <- readRDS("data/Manchester/processed/TRADS_safe.rds")$trips %>%
-  left_join(routeData) %>%
   select(hh.id,p.id,t.id,t.origin,t.destination,t.departureTime,t.arrivalTime,t.travelTime,
-         t.homeWithinBoundary,t.originWithinBoundary,t.destinationWithinBoundary,t.sameHomeAndDest,
+         t.startSTUDYAREA,t.endSTUDYAREA,
          starts_with("t.check."))
   
 ####### CHECK FOR AND REMOVE BAD RECORDS #######
@@ -35,7 +14,7 @@ tests <- trips %>%
          test_ArrivalTimeMatch = (t.departureTime + t.travelTime) %% (24*3600) - t.arrivalTime == 0,
          nextDay = t.departureTime < lag(t.arrivalTime),
          nextDayOccurences = sum(nextDay,na.rm = T),
-         test_validODlocations = (t.originWithinBoundary %in% TRUE) & (t.destinationWithinBoundary %in% TRUE),
+         test_validODlocations = (t.startSTUDYAREA %in% TRUE) & (t.endSTUDYAREA %in% TRUE),
          test_wrapAroundTime = 86400*(1 - nextDayOccurences) + first(t.departureTime) - last(t.arrivalTime) > 0,
          test_unknownOrigin = t.origin == "unknown",
          test_unknownDestination = t.destination == "unknown",
@@ -55,7 +34,7 @@ persons_to_remove1 <- tests %>%
   select(hh.id,p.id) %>% distinct()
 
 # Remove bad individuals from dataset (but keep other persons in the same household... for now...)
-trips <- trips %>% anti_join(persons_to_remove1) %>% select(-starts_with(c("test_","t.check.")),-ends_with(c("withinBoundary"))) %>% mutate(t.HD.car_dist = replace_na(t.HD.car_dist,0))
+trips <- trips %>% anti_join(persons_to_remove1) %>% select(-starts_with(c("test_","t.check.")),-ends_with(c("STUDYAREA")))
 
 ################ CREATE ACTIVITY-BASED DATASET ################
 # test <- trips %>% group_by(hh.id,p.id) %>% summarise(firstAct = first(t.origin), lastAct = last(t.destination))

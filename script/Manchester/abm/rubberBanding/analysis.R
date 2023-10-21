@@ -23,6 +23,14 @@ stops <- readr::read_csv("data/manchester/processed/abm_stops.csv", na = c("null
 stops$car_hs[stops$t.sameHomeAndDest] <- 0
 stops$car_sm[stops$t.sameMainAndDest] <- 0
 
+# Create safe version
+stops_safe <- stops %>% 
+  group_by(hh.id) %>%
+  mutate(hh.id = cur_group_id()) %>%
+  select(hh.id,p.id,tour.id,tour.purpose,act.id,act.purpose,act.type,starts_with("beeline"),starts_with("car"))
+
+write_csv(stops_safe,file = "data/Manchester/processed/abm_stops_safe.csv")
+
 # Define home and main dist
 stops$home_stop = stops$car_hs
 stops$stop_main = stops$car_sm
