@@ -2,10 +2,12 @@
 library(tidyverse)
 rm(list = ls())
 
-TRADS <- readRDS("data/Manchester/processed/TRADS_safe_routed.rds")
+TRADS <- readRDS("data/Manchester/processed/TRADS_safe.rds")
 
-trips <- readr::read_csv("~/Documents/manchester/TfGM/rubberBandingResults.csv", na = c("null",""),
-                                   col_types = "ciilllllldddddddddddd") %>% 
+stops <- readr::read_csv("data/manchester/processed/abm_stops.csv", na = c("null",""),
+                                   col_types = "ciillllllccclddd") %>% 
+  select(-PathId,-cost,-time) %>%
+  pivot_wider(names_from = Route, values_from = dist) %>%
   rename(hh.id = IDNumber, 
          p.id = PersonNumber, 
          t.id = TripNumber,
@@ -15,25 +17,22 @@ trips <- readr::read_csv("~/Documents/manchester/TfGM/rubberBandingResults.csv",
          t.sameHomeAndDest = SameHomeAndDest,
          t.sameMainAndDest = SameMainAndDest,
          t.sameOrigAndDest = SameOrigAndDest) %>%
-  select(-ends_with("time"),-ends_with("cost")) %>%
   left_join(TRADS$trips_abm)
 
-trips$home_dist[trips$t.sameHomeAndDest] <- 0
-trips$main_dist[trips$t.sameMainAndDest] <- 0
+# Set NAs to 0
+stops$car_hs[stops$t.sameHomeAndDest] <- 0
+stops$car_sm[stops$t.sameMainAndDest] <- 0
+
+# Define home and main dist
+stops$home_stop = stops$car_hs
+stops$stop_main = stops$car_sm
+stops$home_main = stops$car_hm
 
 # Get Home <-> Main Dist
-trips <- trips %>% 
-  group_by(hh.id,p.id,tour.id) %>% 
-  mutate(home_main = first(home_dist[act.type == "main"]),
-         home_stop = home_dist,
-         main_stop = main_dist) %>% 
-  ungroup()
-
-stops <- trips %>% 
-  filter(startsWith(act.type,"stop"),
-         !act.purpose == "rrt") %>%
-  mutate(p = (home_stop^2 + home_main^2 - main_stop^2) / (2 * home_main^2),
-         h = sqrt(home_stop^2 - ((home_stop^2 + home_main^2 - main_stop^2) / (2 * home_main))^2) / home_main)
+stops <- stops %>% 
+  filter(!act.purpose == "rrt") %>%
+  mutate(p = (home_stop^2 + home_main^2 - stop_main^2) / (2 * home_main^2),
+         h = sqrt(home_stop^2 - ((home_stop^2 + home_main^2 - stop_main^2) / (2 * home_main))^2) / home_main)
          
 
 ggplot(stops, aes(x = p, colour = act.purpose)) + 

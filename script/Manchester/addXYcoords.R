@@ -3,13 +3,15 @@
 
 #################   REQUIRED TO PREPARE DATASET FOR ROUTING IN MATSIM     ################# 
 library(tidyverse)
-trips <- readRDS("data/Manchester/processed/TRADS.rds")$raw$trips
+raw <- readRDS("data/Manchester/processed/TRADS.rds")$raw
+trips <- raw$trips
+persons <- raw$indiv
 
 ###### Read population-weighted centroids ######
 centroids <- sf::read_sf("data/Manchester/gis/OA_centroids/Output_Areas__December_2011__Population_Weighted_Centroids.shp")
 centroids <- centroids %>% sf::st_drop_geometry() %>% cbind(sf::st_coordinates(centroids$geometry)) %>% select(OA11CD,X,Y)
 
-# Create trips file with only the data required for routing
+### Create trips file with data required for MATSim processing
 tripsWithXY <- trips %>% 
   select(IDNumber,PersonNumber,TripNumber,StartTime,EndTime,MainMode,StartPurpose,EndPurpose,OutputArea,StartOutputArea,EndOutputArea) %>%
   mutate(MainMode = gsub(",","",MainMode)) %>%
@@ -21,6 +23,25 @@ tripsWithXY <- trips %>%
   rename(EndEasting = X, EndNorthing = Y)
 
 write.table(tripsWithXY,file = "data/Manchester/processed/tripsWithXY.csv", sep = ";", 
+            row.names = FALSE, quote = FALSE)
+
+### Create PERSONS file with data required for MATSim processing
+personsWithXY <- persons %>%
+  select(IDNumber,PersonNumber,OutputArea,WorkOutputArea) %>%
+  mutate(WorkOutputArea = gsub(" ","",WorkOutputArea)) %>%
+  filter(WorkOutputArea != "") %>%
+  left_join(centroids, by = c("OutputArea" = "OA11CD")) %>%
+  rename(HomeEasting = X, HomeNorthing = Y) %>%
+  left_join(centroids, by = c("WorkOutputArea" = "OA11CD")) %>%
+  rename(EndEasting = X, EndNorthing = Y) %>%
+  mutate(TripNumber = 0,
+         StartTime = 0,
+         EndTime = 0,
+         MainMode = "na",
+         StartPurpose = "Home",
+         EndPurpose = "Usual place of work")
+
+write.table(personsWithXY,file = "data/Manchester/processed/personsWithXY.csv", sep = ";", 
             row.names = FALSE, quote = FALSE)
 
 ###### CREATE SAMPLE (USEFUL FOR TESTING/DEBUGGING) ######
