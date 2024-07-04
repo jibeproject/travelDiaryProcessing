@@ -36,7 +36,7 @@ tripsWithXY <- trips %>%
   left_join(centroids, by = c("EndOutputArea" = "OA11CD")) %>%
   rename(EndEasting = X, EndNorthing = Y)
 
-write.table(filtered,file = "data/Manchester/processed/tripsWithXY_abm.csv", sep = ";", row.names = FALSE, quote = FALSE)
+write.table(tripsWithXY,file = "data/Manchester/processed/tripsWithXY_abm.csv", sep = ";", row.names = FALSE, quote = FALSE)
 
 # Create dataset of stops only
 stops <- trips %>% filter(act.type == "stop_out" | act.type == "stop_return")

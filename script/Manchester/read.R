@@ -40,8 +40,22 @@ RAW$indiv <- indiv
 RAW$trips <- trips
 
 # Locations (used for to look up LSOAs and MSOAs from OAs)
-locations <- readr::read_csv("data/Manchester/gis/OA_lookup.csv", col_select = c("OA11CD","LSOA11CD","MSOA11CD")) %>%
-  transmute(hh.OA = OA11CD, hh.LSOA = LSOA11CD, hh.MSOA = MSOA11CD)
+locations <- readr::read_csv("data/Manchester/gis/OA_lookup.csv", col_select = c("OA11CD","LSOA11CD","MSOA11CD","LAD17NM")) %>%
+  mutate(GM = LAD17NM %in% c("Tameside","Bolton","Bury","Manchester","Oldham","Rochdale","Salford","Stockport","Trafford","Wigan"))
+
+# Network boundary
+boundary <- sf::read_sf("data/Manchester/gis/NetworkBoundary.gpkg")
+centroids <- sf::read_sf("data/Manchester/gis/OA_centroids/Output_Areas__December_2011__Population_Weighted_Centroids.shp")
+
+centroids <- centroids %>%
+  mutate(STUDYAREA = lengths(sf::st_intersects(centroids,boundary)) > 0) %>%
+  sf::st_drop_geometry() %>%
+  select(-OBJECTID)
+
+locations <- locations %>% left_join(centroids)
+locations$STUDYAREA[is.na(locations$STUDYAREA)] = FALSE
+  
+rm(centroids,boundary)
 
 # Remove individual/household columns from trips dataset (can be added back later through left_join)
 indiv_cols = names(indiv)[-c(1,2,13)]
@@ -78,16 +92,22 @@ households <- households %>%
             hh.structure3 = HouseholdCategoryDescription,
             hh.expansionFactor = ExpansionFactor,
             hh.OA = OutputArea) %>%
-  left_join(locations)
+  left_join(locations, by = c("hh.OA" = "OA11CD")) %>%
+  rename(hh.LSOA = LSOA11CD,
+         hh.MSOA = MSOA11CD,
+         hh.LAD = LAD17NM,
+         hh.GM = GM,
+         hh.STUDYAREA = STUDYAREA)
 
 ###### INDIVIDUAL VARIABLES ######
 indiv <- indiv %>%
   transmute(hh.id = IDNumber,
             p.id = PersonNumber,
             p.ID = Person_ID,
+            p.weight = personfactorall,
             p.female = na_if(Gender,"99") == "Female",
             p.age_group = Age,
-            p.ethnicity = Ethnicity,
+            p.ethnicity = na_if(Ethnicity,"99"),
             p.licence = DrivingLicence,
             p.seasonTicket = SeasonTicketPeriod,
             p.ws_workOver30h = WorkStatus2 != 0,
@@ -146,6 +166,30 @@ categorise_activity <- function(purpose) {
                 `NR` = "unknown")
 }
 
+categorise_purpose <- function(start,end) {
+  case_when(start == "unknown" | end == "unknown" ~ "unknown",
+            start == "B" | end == "B" ~ "business",
+            start == "W" & end == "W" ~ "business",
+            start == "H" & end == "W" ~ "work",
+            start == "H" & end == "B" ~ "business",
+            start == "H" & end == "E" ~ "education",
+            start == "H" & end == "A" ~ "escort",
+            start == "H" & end == "S" ~ "shop",
+            start == "H" & end == "R" ~ "recreation",
+            start == "H" & end == "O" ~ "other",
+            start == "H" & end == "RRT" ~ "rrt",
+            end == "H" & start == "W" ~ "work",
+            end == "H" & start == "B" ~ "business",
+            end == "H" & start == "E" ~ "education",
+            end == "H" & start == "A" ~ "escort",
+            end == "H" & start == "S" ~ "shop",
+            end == "H" & start == "R" ~ "recreation",
+            end == "H" & start == "O" ~ "other",
+            end == "H" & start == "RRT" ~ "rrt",
+            start == "W" | end == "W" ~ "nhb work",
+            TRUE ~ "nhb other")
+}
+
 trips <- trips %>% 
   transmute(hh.id = IDNumber,
             p.id = PersonNumber,
@@ -154,6 +198,7 @@ trips <- trips %>%
             t.endPurpose = EndPurpose,
             t.origin = categorise_activity(t.startPurpose),
             t.destination = categorise_activity(t.endPurpose),
+            t.purpose = categorise_purpose(t.origin,t.destination),
             t.startOA = StartOutputArea,
             t.endOA = EndOutputArea,
             t.departureTime = round(StartTime),
@@ -193,7 +238,19 @@ trips <- trips %>%
             t.expansionFactor_all = tripallfinal,
             t.expansionFactor_weekday = TripWeekday,
             t.expansionFactor_saturday = Tripsaturday,
-            t.expansionFactor_sunday = Tripsunday)
+            t.expansionFactor_sunday = Tripsunday) %>%
+  left_join(locations,by = c("t.startOA" = "OA11CD")) %>%
+  rename(t.startLSOA = LSOA11CD,
+         t.startMSOA = MSOA11CD,
+         t.startLAD = LAD17NM,
+         t.startGM = GM,
+         t.startSTUDYAREA = STUDYAREA) %>%
+  left_join(locations,by = c("t.endOA" = "OA11CD")) %>%
+  rename(t.endLSOA = LSOA11CD,
+         t.endMSOA = MSOA11CD,
+         t.endLAD = LAD17NM,
+         t.endGM = GM,
+         t.endSTUDYAREA = STUDYAREA)
 
 # Add OA/purpose (mis)match variables
 trips <- trips %>%
@@ -223,7 +280,7 @@ saveRDS(TRADS,"data/Manchester/processed/TRADS.rds")
 SAFE <- TRADS[names(TRADS) != "raw"]
 
 # Remove location-specific data from persons/trips dataset
-SAFE$trips <- SAFE$trips %>% select(-t.startOA,-t.endOA)
+SAFE$trips <- SAFE$trips %>% select(-t.startOA,-t.startMSOA,-t.startLSOA,-t.startLAD,-t.endOA,-t.endMSOA,-t.endLSOA,-t.endLAD)
 SAFE$indiv <- SAFE$indiv %>% select(-p.workOA,-p.studyOA)
 
 # Replace household locations with group IDs

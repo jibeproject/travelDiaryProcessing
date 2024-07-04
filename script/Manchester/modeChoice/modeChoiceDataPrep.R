@@ -1,9 +1,8 @@
 library(tidyverse)
-setwd("~/Documents/manchester")
 
 
 ### READ RAW TRIP DATA ###
-TRADS <- readRDS("~/RProjects/travelDiaryProcessing/data/Manchester/processed/TRADS.rds")
+TRADS <- readRDS("data/Manchester/processed/TRADS.rds")
 trips <- TRADS$raw$trips %>% 
   select(IDNumber,PersonNumber,TripNumber,StartPurpose,EndPurpose,StartOutputArea,EndOutputArea,TripLength) %>%
   mutate(sameOD = StartOutputArea == EndOutputArea,
@@ -13,8 +12,11 @@ trips <- TRADS$raw$trips %>%
            (StartPurpose == "Usual place of work" & EndPurpose == "Home") |
            (StartPurpose == "Education as pupil, student" & EndPurpose == "Home"))
 
-# Read (new) OA-level results 
-routesOA <- readr::read_csv("TfGM/routes.csv", col_types = "ciiccccccccinnnnn") %>% 
+# Change WD
+setwd("~/Documents/manchester")
+
+# Read (new) OA-level results
+routesOA <- readr::read_csv("TfGM/routes.csv", col_types = "ciiccccccccinnnnn", na = c("","null")) %>% 
   transmute(IDNumber,PersonNumber,TripNumber,
             orig_gm = na_if(OriginWithinBoundary,"null") == "true",
             dest_gm = na_if(DestinationWithinBoundary,"null") == "true",

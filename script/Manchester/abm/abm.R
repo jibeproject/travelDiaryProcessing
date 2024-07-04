@@ -1,11 +1,11 @@
 library(tidyverse)
 rm(list = ls())
 
-trips <- readRDS("data/Manchester/processed/TRADS_safe_routed.rds")$trips %>%
-  select(hh.id,p.id,t.id,t.origin,t.destination,t.departureTime,t.arrivalTime,t.travelTime,t.route.home_dist,
-         t.homeWithinBoundary,t.originWithinBoundary,t.destinationWithinBoundary,t.sameHomeAndDest,
+trips <- readRDS("data/Manchester/processed/TRADS_safe.rds")$trips %>%
+  select(hh.id,p.id,t.id,t.origin,t.destination,t.departureTime,t.arrivalTime,t.travelTime,
+         t.startSTUDYAREA,t.endSTUDYAREA,
          starts_with("t.check."))
-
+  
 ####### CHECK FOR AND REMOVE BAD RECORDS #######
 tests <- trips %>% 
   group_by(hh.id,p.id) %>%
@@ -14,7 +14,7 @@ tests <- trips %>%
          test_ArrivalTimeMatch = (t.departureTime + t.travelTime) %% (24*3600) - t.arrivalTime == 0,
          nextDay = t.departureTime < lag(t.arrivalTime),
          nextDayOccurences = sum(nextDay,na.rm = T),
-         test_validODlocations = (t.originWithinBoundary %in% TRUE) & (t.destinationWithinBoundary %in% TRUE),
+         test_validODlocations = (t.startSTUDYAREA %in% TRUE) & (t.endSTUDYAREA %in% TRUE),
          test_wrapAroundTime = 86400*(1 - nextDayOccurences) + first(t.departureTime) - last(t.arrivalTime) > 0,
          test_unknownOrigin = t.origin == "unknown",
          test_unknownDestination = t.destination == "unknown",
@@ -34,7 +34,7 @@ persons_to_remove1 <- tests %>%
   select(hh.id,p.id) %>% distinct()
 
 # Remove bad individuals from dataset (but keep other persons in the same household... for now...)
-trips <- trips %>% anti_join(persons_to_remove1) %>% select(-starts_with(c("test_","t.check.")),-ends_with(c("withinBoundary"))) %>% mutate(t.route.home_dist = replace_na(t.route.home_dist,0))
+trips <- trips %>% anti_join(persons_to_remove1) %>% select(-starts_with(c("test_","t.check.")),-ends_with(c("STUDYAREA")))
 
 ################ CREATE ACTIVITY-BASED DATASET ################
 # test <- trips %>% group_by(hh.id,p.id) %>% summarise(firstAct = first(t.origin), lastAct = last(t.destination))
@@ -69,7 +69,19 @@ trips <- trips %>%
          tour.b = !tour.incomplete & any(t.destination == "B"),
          tour.e = !tour.incomplete & any(t.destination == "E"),
          tour.d = !tour.incomplete & !(tour.w | tour.e),
-         tour.purpose = case_when(tour.w ~ "work", tour.e ~ "education", tour.d ~ "discretionary", TRUE ~ "disregard"),
+         tour.a = tour.d & any(t.destination == "A"),
+         tour.s = tour.d & any(t.destination == "S"),
+         tour.o = tour.d & any(t.destination == "O"),
+         tour.r = tour.d & any(t.destination == "R"),
+         tour.rrt = tour.d & any(t.destination == "RRT"),
+         tour.purpose = case_when(tour.w ~ "work", 
+                                  tour.e ~ "education", 
+                                  tour.a ~ "accompany",
+                                  tour.s ~ "shop",
+                                  tour.o ~ "other",
+                                  tour.r ~ "recreation",
+                                  tour.rrt ~ "rrt",
+                                  TRUE ~ "disregard"),
          act.id = 1:n(),
          subtour.w.id = cumsum(t.origin == "W" | t.origin == "B"),
          subtour.e.id = cumsum(t.origin == "E")) %>%
@@ -89,11 +101,16 @@ trips <- trips %>%
   mutate(subtour = subtour.w | subtour.e,
          subtour.id = replace(cumsum(subtour & (t.origin == "W" | t.origin == "E")), !subtour, NA),
          subtour.type = case_when(subtour.w ~ "work", subtour.e ~ "education"),
-         test = t.route.home_dist + (t.destination != "H") * (act.duration / 100000),
          main.position = case_when(tour.w ~ match("W", t.destination),
                                    tour.e ~ match("E", t.destination),
-                                   tour.d ~ which.max(test))) %>%
+                                   tour.a ~ match("A", t.destination),
+                                   tour.s ~ match("S", t.destination),
+                                   tour.o ~ match("O", t.destination),
+                                   tour.r ~ match("R", t.destination),
+                                   tour.rrt ~ match("RRT", t.destination))) %>%
   ungroup()
+
+test <- trips %>% filter(is.na(main.position))
 
 # Add activity details
 trips <- trips %>%
@@ -114,11 +131,11 @@ trips <- trips %>%
 trips_abm <- trips %>% select(hh.id, p.id, t.id, tour.id, tour.incomplete, tour.purpose, subtour.id, subtour.type, act.id, act.purpose, act.start, act.end, act.type)
 
 # Main dataset
-TRADS <- readRDS("data/Manchester/processed/TRADS_routed.rds")
+TRADS <- readRDS("data/Manchester/processed/TRADS.rds")
 TRADS$trips_abm <- trips_abm
-saveRDS(TRADS,"data/Manchester/processed/TRADS_routed.rds")
+saveRDS(TRADS,"data/Manchester/processed/TRADS.rds")
 
 # Safe dataset
-SAFE <- readRDS("data/Manchester/processed/TRADS_safe_routed.rds")
+SAFE <- readRDS("data/Manchester/processed/TRADS_safe.rds")
 SAFE$trips_abm <- trips_abm
-saveRDS(SAFE,"data/Manchester/processed/TRADS_safe_routed.rds")
+saveRDS(SAFE,"data/Manchester/processed/TRADS_safe.rds")
