@@ -4,8 +4,8 @@ rm(list = ls())
 library(tidyverse)
 library(fastDummies)
 
-################## Writing and reading csv ##################
-TRADS <- read_rds("data/Manchester/processed/TRADS_safe.rds")
+################## Read RDS file ##################
+TRADS <- read_rds("data/Manchester/processed/TRADS.rds")
 
 ################## Creating unique id for individuals and trips ##################
 TRADS$indiv <- TRADS$indiv %>%
@@ -78,73 +78,62 @@ trips = trips%>%
                                          error_modeUseDismatch & p.mode_combo =="None" ~ as.character(t.m_main_agg),
                                          !error_modeUseDismatch ~ p.mode_combo)})
 
-
-
 ################## attach travel time ##################
-carTravelTime=read_csv("data/manchester/travelTime/carCongested_10perc.csv")%>%filter(Route=="carCongested")
-ptTravelTime=read_csv("data/manchester/travelTime/ptTravelTime_matsim.csv")
+routeData=read_csv("data/manchester/routed/routes.csv", col_types = "ciilllllcccinnnnn", na = c("","null")) %>%
+  select(-cost) %>% 
+  pivot_wider(names_from = "Route", values_from = c(time,dist)) %>%
+  select(IDNumber,PersonNumber,TripNumber,OriginWithinBoundary,DestinationWithinBoundary,SameOrigAndDest,
+         time_car_congested,dist_car_freespeed,dist_bike,dist_walk)
+
+ptTravelTime=read_csv("data/manchester/routed/ptTravelTime_matsim.csv", col_names = TRUE, na = c("","null"),
+                      col_types = cols_only(IDNumber = "c", PersonNumber = "i", TripNumber = "i", totalTravelTime = "n"))
 
 
 trips = trips%>%
-  left_join(carTravelTime[,c("IDNumber","PersonNumber","TripNumber","time","dist")],by=c("hh.id"="IDNumber","p.id"="PersonNumber","t.id"="TripNumber"))%>%
-  left_join(ptTravelTime[,c("IDNumber","PersonNumber","TripNumber","totalTravelTime")],by=c("hh.id"="IDNumber","p.id"="PersonNumber","t.id"="TripNumber"))
-
-colnames(trips)[which(names(trips) == "time")] = "carTravelTime_sec"
-colnames(trips)[which(names(trips) == "totalTravelTime")]  = "ptTravelTime_sec"
-
-trips$carTravelTime_sec = as.numeric(trips$carTravelTime_sec)
-trips$ptTravelTime_sec = as.numeric(trips$ptTravelTime_sec)
-trips$dist = as.numeric(trips$dist)
+  left_join(routeData,by=c("hh.id"="IDNumber","p.id"="PersonNumber","t.id"="TripNumber"))%>%
+  left_join(ptTravelTime,by=c("hh.id"="IDNumber","p.id"="PersonNumber","t.id"="TripNumber")) %>%
+  rename(dist = dist_car_freespeed,
+         carTravelTime_sec = time_car_congested,
+         ptTravelTime_sec = totalTravelTime)
 
 ################## filter out invalid trips records ##################
 # In total 31129 trips
 # 1. filter out trips origin/destination outside Boundary (after filtering 30044 trips) 
-trips = trips%>%
-  left_join(carTravelTime[,c("IDNumber","PersonNumber","TripNumber","OriginWithinBoundary","DestinationWithinBoundary","SameOrigAndDest")],
-            by=c("hh.id"="IDNumber","p.id"="PersonNumber","t.id"="TripNumber"))
-
-trips = trips%>%
-  filter(OriginWithinBoundary&DestinationWithinBoundary=="true")
+trips = trips %>% filter(OriginWithinBoundary & DestinationWithinBoundary)
 
 # 2. filter out trips with mode "Other" or "unknown" (after filtering 29932)
-trips = trips%>%
-  filter(!t.m_main_agg%in%c("Other","unknown"))
+trips = trips %>% filter(!t.m_main_agg%in%c("Other","unknown"))
 
 # 3. filter out trips with purpose "RRT", "business", and "unknown" and "return home" (after filtering 27952)
-trips = trips%>%
-  filter(!t.purpose%in%c("RRT","unknown","business"))
-
-
-################### Attach built environment variables ##################
-corridor=read_csv("data/manchester/corridor/AllShort92.csv")
-
-trips = trips%>%
-  left_join(select(corridor,-c("car_time")),by=c("hh.id"="IDNumber","p.id"="PersonNumber","t.id"="TripNumber"))
+trips = trips %>% filter(!t.purpose%in%c("unknown","business"))
 
 
 ################### Deal with intrazonal trips ##################
 # Estimate distance-dependent speed of car and pt
-averageSpeed = trips%>%
-  filter(SameOrigAndDest == "false" & dist != 0 & carTravelTime_sec != 0 & ptTravelTime_sec != 0)%>%
+averageSpeed = trips %>%
+  filter(!SameOrigAndDest & dist != 0 & carTravelTime_sec != 0 & ptTravelTime_sec != 0)%>%
   mutate(speed_car = as.numeric(dist)/carTravelTime_sec,
          speed_pt = as.numeric(dist)/ptTravelTime_sec)
 
-lm_carSpeed=lm(speed_car ~ as.numeric(dist),averageSpeed)
+lm_carSpeed=lm(speed_car ~ dist,averageSpeed)
+
 summary(lm_carSpeed)
+
 lm_ptSpeed=lm(speed_pt ~ sqrt(as.numeric(dist)),averageSpeed)
+
 summary(lm_ptSpeed)
 
 
 # Use reported trip length to impute travel time of alternative modes,
 # If reported trip length == 0, then use reported travel time to impute travel time of alternative modes
 
-intrazonalTrips=trips[trips$SameOrigAndDest=="true",]
+intrazonalTrips=trips %>% filter(SameOrigAndDest)
 
 
 intrazonalTrips=intrazonalTrips %>% 
   within({ dist = case_when(t.tripLength > 0 ~ t.tripLength * 1.2,
-                            t.tripLength == 0 ~ case_when(t.m_main_agg == "Walk" ~ t.travelTime * (4.0/3.6), #average walk speed 4km/h
-                                                          t.m_main_agg == "Bike" ~ t.travelTime * (12.5/3.6), #average cycle speed 4km/h
+                            t.tripLength == 0 ~ case_when(t.m_main_agg == "Walk" ~ t.travelTime * 1.38, # 1.38 m/s average from modelled walk trips
+                                                          t.m_main_agg == "Bike" ~ t.travelTime * 5.1, # 5.1 m/s average from modelled bike trips
                                                           t.m_main_agg == "Car" ~ t.travelTime * (30.0/3.6), #average car speed 30 km/h
                                                           t.m_main_agg == "Pt" ~ t.travelTime * (6.0/3.6)))}) #average pt speed km/h
 
@@ -157,25 +146,26 @@ intrazonalTrips=intrazonalTrips%>%
 
 
 trips = trips%>%
-  rows_update(intrazonalTrips%>% 
-                select(-carSpeed_impute, -ptSpeed_impute),by="t.ID")
+  rows_update(intrazonalTrips %>%select(-carSpeed_impute, -ptSpeed_impute),by="t.ID")
 
 
-## TODO: remove the irregular intrazonal trips?
+## Remove the irregular intrazonal trips TODO: make more detailed based on zone sizes
+unrealisticIntrazonalTrips <- intrazonalTrips %>% filter(dist >= 2500) %>% select(t.ID)
+trips <- trips %>% anti_join(unrealisticIntrazonalTrips)
 
 
 ################### Deal with bike/walk dist 0 or NA ##################
 ## some are intrazonal trips, check why non-intrazonal trips also have dist as 0 or NA
 trips = trips%>%
-  mutate(bike_dist = case_when(bike_dist==0 |is.na(bike_dist) ~ dist,
-                               TRUE ~ bike_dist),
-         walk_dist = case_when(walk_dist==0 |is.na(walk_dist) ~ dist,
-                               TRUE ~ walk_dist))
+  mutate(dist_bike = case_when(dist_bike==0 | is.na(dist_bike) ~ dist,
+                               TRUE ~ dist_bike),
+         dist_walk = case_when(dist_walk==0 |is.na(dist_walk) ~ dist,
+                               TRUE ~ dist_walk))
 
 
 ################### Set availability of modes ##################
 
-trips = trips%>%
+trips = trips %>%
   mutate(av_carD = 1,
          av_carP = 1,
          av_pt = case_when(ptTravelTime_sec == 0 ~ 0,
@@ -183,7 +173,7 @@ trips = trips%>%
          av_bike = 1,
          av_walk = 1)
 
-trips = trips%>%filter(!(trips$av_pt==0&trips$t.m_main_agg=="Pt"))
+trips = trips %>% filter(!(trips$av_pt==0 & trips$t.m_main_agg=="Pt"))
 
 ################### Re-coding variables ##################
 trips=trips %>% within({ 
@@ -221,5 +211,5 @@ trips=trips %>% within({
 
 
 
-write.csv(trips,file = "data/Manchester/processed/tripsForApollo.csv",row.names=FALSE)
+saveRDS(trips, file = "data/Manchester/processed/tripsForApollo.rds")
 
