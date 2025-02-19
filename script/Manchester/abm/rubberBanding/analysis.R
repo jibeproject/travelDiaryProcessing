@@ -19,17 +19,39 @@ stops <- readr::read_csv("data/manchester/processed/abm_stops.csv", na = c("null
          t.sameOrigAndDest = SameOrigAndDest) %>%
   left_join(TRADS$trips_abm)
 
+all <- readr::read_csv("data/manchester/processed/abm_all.csv", na = c("null",""),
+                         col_types = "ciillllllccclddd") %>% 
+  select(-PathId,-cost,-time) %>%
+  pivot_wider(names_from = Route, values_from = dist) %>%
+  rename(hh.id = IDNumber, 
+         p.id = PersonNumber, 
+         t.id = TripNumber,
+         t.homeWithinBoundary = HomeWithinBoundary,
+         t.originWithinBoundary = OriginWithinBoundary, 
+         t.destinationWithinBoundary = DestinationWithinBoundary, 
+         t.sameHomeAndDest = SameHomeAndDest,
+         t.sameMainAndDest = SameMainAndDest,
+         t.sameOrigAndDest = SameOrigAndDest) %>%
+  left_join(TRADS$trips_abm)
+
 # Set NAs to 0
 stops$car_hs[stops$t.sameHomeAndDest] <- 0
 stops$car_sm[stops$t.sameMainAndDest] <- 0
 
-# Create safe version
+# Create safe versions
 stops_safe <- stops %>% 
   group_by(hh.id) %>%
   mutate(hh.id = cur_group_id()) %>%
   select(hh.id,p.id,tour.id,tour.purpose,act.id,act.purpose,act.type,starts_with("beeline"),starts_with("car"))
 
 write_csv(stops_safe,file = "data/Manchester/processed/abm_stops_safe.csv")
+
+all_safe <- all %>% 
+  group_by(hh.id) %>%
+  mutate(hh.id = cur_group_id()) %>%
+  select(hh.id,p.id,tour.id,tour.purpose,act.id,act.purpose,act.type,starts_with("beeline"),starts_with("car"))
+
+write_csv(all_safe,file = "data/Manchester/processed/abm_all_safe.csv",na = "0")
 
 # Define home and main dist
 stops$home_stop = stops$car_hs
