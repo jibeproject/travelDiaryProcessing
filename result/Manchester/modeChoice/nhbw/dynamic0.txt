@@ -1,0 +1,47 @@
+| COEFFICIENT NAME               | VALUE      | STD.ERR |  T.TEST     |  P.VAL      |
+| asc_carD                       |  0,0000000 |         |             |             |
+| b_carD_p.age_group_agg_15_24   |  0,0000000 |         |             |             |
+| b_carD_p.female                |  0,0000000 |         |             |             |
+| b_carD_hh.cars_gr_0            |  0,0000000 |         |             |             |
+| b_carD_hh.cars_gr_23           |  0,0000000 |         |             |             |
+| b_carD_hh.income_agg_high      |  0,0000000 |         |             |             |
+| asc_carP                       | -2,1979045 | 0,27271 |  -8,05963   | 0,00000 *** |
+| b_carP_p.age_group_agg_15_24   |  1,3960039 | 0,55949 |   2,49513   | 0,01259 *   |
+| b_carP_p.female                |  0,0000000 |         |             |             |
+| b_carP_hh.cars_gr_0            |  2,4774960 | 0,95397 |   2,59703   | 0,00940 **  |
+| b_carP_hh.cars_gr_23           | -1,3060531 | 0,49167 |  -2,65637   | 0,00790 **  |
+| b_carP_hh.income_agg_high      |  0,0000000 |         |             |             |
+| asc_pt                         | -2,0190368 | 0,48144 |  -4,19378   | 0,00003 *** |
+| b_pt_p.age_group_agg_15_24     |  1,2725254 | 0,60366 |   2,10801   | 0,03503 *   |
+| b_pt_p.female                  |  0,0000000 |         |             |             |
+| b_pt_hh.cars_gr_0              |  4,1011026 | 0,82478 |   4,97235   | 0,00000 *** |
+| b_pt_hh.cars_gr_23             | -1,4174669 | 0,48942 |  -2,89624   | 0,00378 **  |
+| b_pt_hh.income_agg_high        |  0,8794098 | 0,48578 |   1,81031   | 0,07025 .   |
+| asc_bike                       | -2,8055803 | 0,74991 |  -3,74121   | 0,00018 *** |
+| b_bike_p.age_group_agg_15_24   |  0,0000000 |         |             |             |
+| b_bike_p.female                |  0,0000000 |         |             |             |
+| b_bike_hh.cars_gr_0            |  0,0000000 |         |             |             |
+| b_bike_hh.cars_gr_23           |  0,0000000 |         |             |             |
+| b_bike_hh.income_agg_high      |  0,0000000 |         |             |             |
+| asc_walk                       |  3,3009913 | 0,36990 |   8,92411   | 0,00000 *** |
+| b_walk_p.age_group_agg_15_24   |  0,0000000 |         |             |             |
+| b_walk_p.female                | -0,5555758 | 0,34664 |  -1,60274   | 0,10899     |
+| b_walk_hh.cars_gr_0            |  5,7331467 | 0,95669 |   5,99269   | 0,00000 *** |
+| b_walk_hh.cars_gr_23           |  0,0000000 |         |             |             |
+| b_walk_hh.income_agg_high      |  1,2764251 | 0,47178 |   2,70556   | 0,00682 **  |
+| b_car_time                     | -0,1790923 | 0,04973 |  -3,60149   | 0,00032 *** |
+| b_pt_time                      | -0,0501894 | 0,01675 |  -2,99698   | 0,00273 **  |
+| b_bike_cost                    | -0,1709361 | 0,06415 |  -2,66446   | 0,00771 **  |
+| b_walk_cost                    | -0,0088715 | 0,02024 |  -0,43827   | 0,66119     |
+| g_walk_speed                   |  59,0739225 | 141,83847 |   0,41649   | 0,67705     |
+
+
+Iterations: 500
+
+Start LL = 996.9092504649126
+Final LL = 310.2918883148609
+
+BIKE DETOURS: min=1,00  25perc=1,00  med=1,00  mean=1,00  75perc=1,00  max=1,00
+BIKE OVERLAP: min=1,00  25perc=1,00  med=1,00  mean=1,00  75perc=1,00  max=1,00
+WALK DETOURS: min=1,00  25perc=1,06  med=1,14  mean=1,16  75perc=1,23  max=1,76
+WALK OVERLAP: min=0,00  25perc=0,07  med=0,23  mean=0,35  75perc=0,55  max=1,00

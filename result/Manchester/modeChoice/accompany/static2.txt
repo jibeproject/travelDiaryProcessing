@@ -1,0 +1,62 @@
+| COEFFICIENT NAME               | VALUE      | STD.ERR |  T.TEST     |  P.VAL      |
+| asc_carD                       |  0,0000000 |         |             |             |
+| b_carD_p.age_group_agg_5_24    |  0,0000000 |         |             |             |
+| b_carD_p.age_group_agg_40_69   |  0,0000000 |         |             |             |
+| b_carD_p.age_group_agg_70      |  0,0000000 |         |             |             |
+| b_carD_p.female                |  0,0000000 |         |             |             |
+| b_carD_p.occupation_worker     |  0,0000000 |         |             |             |
+| b_carD_hh.cars_gr_0            |  0,0000000 |         |             |             |
+| b_carD_hh.cars_gr_2            |  0,0000000 |         |             |             |
+| b_carD_hh.cars_gr_3            |  0,0000000 |         |             |             |
+| asc_carP                       | -2,1150869 | 0,24845 |  -8,51306   | 0,00000 *** |
+| b_carP_p.age_group_agg_5_24    |  1,7906930 | 0,26582 |   6,73656   | 0,00000 *** |
+| b_carP_p.age_group_agg_40_69   | -0,4025419 | 0,20542 |  -1,95964   | 0,05004 .   |
+| b_carP_p.age_group_agg_70      | -0,6853743 | 0,37406 |  -1,83227   | 0,06691 .   |
+| b_carP_p.female                |  0,6510828 | 0,19841 |   3,28143   | 0,00103 **  |
+| b_carP_p.occupation_worker     | -1,0451919 | 0,19206 |  -5,44206   | 0,00000 *** |
+| b_carP_hh.cars_gr_0            |  2,1256907 | 0,46297 |   4,59147   | 0,00000 *** |
+| b_carP_hh.cars_gr_2            | -0,5175482 | 0,18265 |  -2,83348   | 0,00460 **  |
+| b_carP_hh.cars_gr_3            | -2,1331926 | 0,64369 |  -3,31402   | 0,00092 *** |
+| asc_pt                         | -5,7228414 | 0,59344 |  -9,64358   | 0,00000 *** |
+| b_pt_p.age_group_agg_5_24      |  0,0000000 |         |             |             |
+| b_pt_p.age_group_agg_40_69     |  0,0000000 |         |             |             |
+| b_pt_p.age_group_agg_70        |  0,0000000 |         |             |             |
+| b_pt_p.female                  |  1,2426826 | 0,45717 |   2,71821   | 0,00656 **  |
+| b_pt_p.occupation_worker       | -0,9761750 | 0,41606 |  -2,34622   | 0,01896 *   |
+| b_pt_hh.cars_gr_0              |  5,8072531 | 0,49038 |   11,84243  | 0,00000 *** |
+| b_pt_hh.cars_gr_2              |  0,0000000 |         |             |             |
+| b_pt_hh.cars_gr_3              |  0,0000000 |         |             |             |
+| asc_bike                       | -3,5823760 | 0,41030 |  -8,73115   | 0,00000 *** |
+| b_bike_p.age_group_agg_5_24    |  0,0000000 |         |             |             |
+| b_bike_p.age_group_agg_40_69   |  0,0000000 |         |             |             |
+| b_bike_p.age_group_agg_70      |  0,0000000 |         |             |             |
+| b_bike_p.female                |  0,0000000 |         |             |             |
+| b_bike_p.occupation_worker     |  0,0000000 |         |             |             |
+| b_bike_hh.cars_gr_0            |  0,0000000 |         |             |             |
+| b_bike_hh.cars_gr_2            |  0,0000000 |         |             |             |
+| b_bike_hh.cars_gr_3            |  0,0000000 |         |             |             |
+| asc_walk                       |  1,6949390 | 0,18813 |   9,00940   | 0,00000 *** |
+| b_walk_p.age_group_agg_5_24    | -0,9984072 | 0,27821 |  -3,58873   | 0,00033 *** |
+| b_walk_p.age_group_agg_40_69   | -0,6949454 | 0,12352 |  -5,62602   | 0,00000 *** |
+| b_walk_p.age_group_agg_70      | -3,4990143 | 0,62035 |  -5,64040   | 0,00000 *** |
+| b_walk_p.female                |  0,8027673 | 0,13979 |   5,74279   | 0,00000 *** |
+| b_walk_p.occupation_worker     | -0,6004354 | 0,12277 |  -4,89063   | 0,00000 *** |
+| b_walk_hh.cars_gr_0            |  4,9282822 | 0,40005 |   12,31925  | 0,00000 *** |
+| b_walk_hh.cars_gr_2            |  0,0000000 |         |             |             |
+| b_walk_hh.cars_gr_3            | -1,4615848 | 0,36064 |  -4,05272   | 0,00005 *** |
+| b_car_time                     |  0,0887614 | 0,06160 |   1,44099   | 0,14959     |
+| b_pt_time                      |  0,0259280 | 0,01402 |   1,84995   | 0,06432 .   |
+| b_bike_cost                    | -0,0811842 | 0,04152 |  -1,95522   | 0,05056 .   |
+| b_walk_cost                    | -0,0369988 | 0,00971 |  -3,81004   | 0,00014 *** |
+| g_walk_vgvi                    |  3,2946392 | 1,28240 |   2,56911   | 0,01020 *   |
+
+
+Iterations: 74
+
+Start LL = 5315.135494088622
+Final LL = 1600.0616736078177
+
+BIKE DETOURS: min=1,00  25perc=1,00  med=1,00  mean=1,00  75perc=1,00  max=1,00
+BIKE OVERLAP: min=1,00  25perc=1,00  med=1,00  mean=1,00  75perc=1,00  max=1,00
+WALK DETOURS: min=1,00  25perc=1,00  med=1,00  mean=1,00  75perc=1,00  max=1,00
+WALK OVERLAP: min=1,00  25perc=1,00  med=1,00  mean=1,00  75perc=1,00  max=1,00
