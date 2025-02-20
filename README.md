@@ -28,7 +28,7 @@ Also includes miscellaneous analysis scripts for this dataset
 ### script/Manchester/modeChoice/formatJavaResults.r
 Formats outputs from mode choice estimation for presentation / publication and for incorporating into MITO.
 
-##England
+## England
 Scripts associated with England's National Travel Survey (NTS) for years 2014-2020.
 Most important scripts are described below.
 
@@ -42,7 +42,7 @@ Used for exposure assessment in MITO.
 ### script/England/timeOfDay_MITO.r
 Estimates distribution curves for arrival time and activity duration for MITO.
 
-##Melbourne
+## Melbourne
 
 Scripts associated with the VISTA travel diary survey for Melbourne
 [TBD]
