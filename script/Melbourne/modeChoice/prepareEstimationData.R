@@ -1,7 +1,7 @@
 ## PREP FOR MODE CHOICE ##
 
 VISTA <- readRDS("data/Melbourne/processed/VISTA.rds")
-routed <- read_csv("../../Documents/melbourne/vista_routes.csv", col_types = "ciiclllcicnnniinnnccccnnn", na = c("null",""))
+routed <- read_csv("data/Melbourne/processed/vista_routes.csv", col_types = "ciiclllcicnnniinnnccccnnn", na = c("null",""))
 
 # Get routed 
 routed <- routed %>%
@@ -15,7 +15,7 @@ routed <- routed %>%
                            Route == "pt" ~ totalTravelTime)) %>%
   select(hhid,persno,tripno,Mode,OriginWithinBoundary,DestinationWithinBoundary,SameOrigAndDest,Route,value) %>%
   pivot_wider(names_from = Route)
-write_csv(select(routed,-Mode),"../../Documents/melbourne/vista_routed.csv")
+# write_csv(select(routed,-Mode),"data/Melbourne/processed/vista_routes_clean.csv")
 
 # Get and filter trips (remove intrazonal for Melbourne as it's only a tiny minority)
 trips <- VISTA$trips %>%
@@ -101,14 +101,14 @@ tripsForJavaHBA <- tripsForJava %>% filter(full_purpose == "HBA") %>% select(-fu
 tripsForJavaNHBW <- tripsForJava %>% filter(full_purpose == "NHBW") %>% select(-full_purpose)
 tripsForJavaNHBO <- tripsForJava %>% filter(full_purpose == "NHBO") %>% select(-full_purpose)
 
-write_csv(tripsForJavaHBW,file = "../../Documents/melbourne/estimation/data/HBW.csv")
-write_csv(tripsForJavaHBE,file = "../../Documents/melbourne/estimation/data/HBE.csv")
-write_csv(tripsForJavaHBA,file = "../../Documents/melbourne/estimation/data/HBA.csv")
-write_csv(tripsForJavaHBR,file = "../../Documents/melbourne/estimation/data/HBR.csv")
-write_csv(tripsForJavaHBSO,file = "../../Documents/melbourne/estimation/data/HBSO.csv")
-write_csv(tripsForJavaHBD,file = "../../Documents/melbourne/estimation/data/HBD.csv")
-write_csv(tripsForJavaNHBW,file = "../../Documents/melbourne/estimation/data/NHBW.csv")
-write_csv(tripsForJavaNHBO,file = "../../Documents/melbourne/estimation/data/NHBO.csv")
+write_csv(tripsForJavaHBW,file = "data/Melbourne/processed/modeChoiceEstimation/input/HBW.csv")
+write_csv(tripsForJavaHBE,file = "data/Melbourne/processed/modeChoiceEstimation/input/HBE.csv")
+write_csv(tripsForJavaHBA,file = "data/Melbourne/processed/modeChoiceEstimation/input/HBA.csv")
+write_csv(tripsForJavaHBR,file = "data/Melbourne/processed/modeChoiceEstimation/input/HBR.csv")
+write_csv(tripsForJavaHBSO,file = "data/Melbourne/processed/modeChoiceEstimation/input/HBSO.csv")
+write_csv(tripsForJavaHBD,file = "data/Melbourne/processed/modeChoiceEstimation/input/HBD.csv")
+write_csv(tripsForJavaNHBW,file = "data/Melbourne/processed/modeChoiceEstimation/input/NHBW.csv")
+write_csv(tripsForJavaNHBO,file = "data/Melbourne/processed/modeChoiceEstimation/input/NHBO.csv")
 
 
 
