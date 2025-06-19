@@ -60,6 +60,19 @@ all_destinations <- imap_dfr(
 #          weight4 = weight ^ 0.25) %>%
 #   write_delim("../melbourne/preprocessing/poi/final/all_test.csv",delim = ";")
 
+all_destinations %>%
+  group_by(type) %>%
+  summarise(
+    na_wt = sum(is.na(weight)),
+    n = n(),
+    pct_na = na_wt / n * 100
+    )
+
+# As per https://github.com/jibeproject/silo/issues/41, destinations with NA weights will be omitted under assumption these were not used to calculate zonal trip attraction coefficients and therefore should not be considered for microdestination weightings that need to sum to match these.
+
+all_destinations <- all_destinations %>%
+  filter(!is.na(weight))
+
 ## PLOT weight DISTRIBUTIONS ##
 all_destinations <- all_destinations %>% 
   mutate(title = recode_factor(type,
