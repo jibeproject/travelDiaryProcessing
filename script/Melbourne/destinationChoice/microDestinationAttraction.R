@@ -1,25 +1,37 @@
+library(tidyverse)
+
 # Read dwellings
-dwellings <- readr::read_csv("../../manchester/destinations/dwelling_building.csv", col_types = "nicnn") %>%
+dwellings <- readr::read_csv("../melbourne/microdata/dd_2018.csv") %>%
   transmute(type = "dwelling",
             code = "HH",
             ID = paste0(type,"_",1:n(),sep = ""),
             X = coordX,
             Y = coordY,
-            oaID)
+            zone)
 
-# Compare households vs. dwellings in each OA
-households <- readr::read_csv("../../manchester/destinations/hh_oa_2021.csv", col_types = "icccccccii") %>%
-  inner_join(count(dwellings,oaID,name = "dwellings")) %>%
-  transmute(oaID,households,dwellings,WT = households / dwellings)
+# Compare households vs. dwellings in each zone (SA1)
+# For Melbourne this was households/dwellings
+# however, for Melbourne dwellings were not distinguished from households; 
+# therefore, the weight of households/dwellings = 1
+# So, we want the zone, household count, dwelling count, and household weight (a constant of 1)
+households <- read_csv("../melbourne/microdata/hh_2018.csv") %>%
+  group_by(zone) %>%
+  summarise(households = n(),
+            dwellings = n(), # assuming each household has one dwelling
+            WT = 1) %>%
+  ungroup()
 
 # Add household weight attribute
 dwellings <- dwellings %>%
-  left_join(select(households,oaID,WT)) %>%
-  relocate(WT,.before = oaID)
+  left_join(select(households,zone,WT)) %>%
+  relocate(WT,.before = zone)
 
 # Read output areas and attraction coefficients
-OAs <- sf::st_read("../../manchester/zones/zonesShapefile/OA_2021_MCR.shp") %>% transmute(oaID = id)
-attractions <- read_csv("result/Manchester/destinationChoice/tripAttractionsCoefficients3.csv")
+zones <- sf::st_read(
+    "../melbourne/input/zonesShapefile/SA1_2016_AUST_MEL.shp"
+  ) %>%
+  transmute(zone = SA1_MAIN16)
+attractions <- read_csv("../melbourne/input/mito/tripAttractionsCoefficients.csv")
 purposes <- names(attractions)[-1]
 
 # all_destinations comes from destinations.r
@@ -32,12 +44,12 @@ attr_destinations <- all_destinations %>%
   sf::st_as_sf(coords = c("X","Y"),remove = FALSE,crs = 27700) %>%
   sf::st_join(OAs,join = sf::st_intersects) %>%
   sf::st_drop_geometry() %>%
-  filter(!is.na(oaID)) %>%
+  filter(!is.na(zone)) %>%
   rbind(dwellings) %>%
   left_join(attractions, by = c("code" = "IndependentVariable")) %>%
   mutate(across(all_of(purposes), ~.*WT))
 
-write_csv(attr_destinations,"result/Manchester/destinationChoice/destinationAttraction.csv")
+write_csv(attr_destinations,"result/Melbourne/destinationChoice/destinationAttraction.csv")
 
 # Plot attraction results
 plot_data <- attr_destinations %>%
