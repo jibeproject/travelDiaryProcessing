@@ -44,6 +44,11 @@ Estimates distribution curves for arrival time and activity duration for MITO.
 
 ## Melbourne
 
-Scripts associated with the VISTA travel diary survey for Melbourne
-[TBD]
+Scripts associated with the VISTA travel diary survey and processing destination microattractions for Melbourne
+
+### script/Melbourne/destinationChoice/destinations.R
+Combine destinations used to develop the trip attraction model as a single 'all_destinations' dataset
+
+### script/Melbourne/destinationChoice/microDestinationAttraction.R
+Prepare the `microDestinationAttraction.csv` file for running the JIBE MITO/SILO model Melbourne useCase.
 
