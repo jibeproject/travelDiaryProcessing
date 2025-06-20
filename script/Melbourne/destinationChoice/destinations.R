@@ -51,9 +51,8 @@ all_destinations <- imap_dfr(
     destination_paths, ~ read_csv(.x) %>% rename(type = Indicator)
   ) %>%
   group_by(type) %>%
-  mutate(ID = row_number()) %>%
-  ungroup() %>%
-  mutate(ID = paste(type, ID, sep = "_"))
+  mutate(id = row_number()) %>%
+  ungroup() 
 # # TEST & WRITE DIFFERENT TRANSFORMATIONS
 # all_destinations %>%
 #   mutate(weight2 = weight ^ 0.5,

@@ -52,11 +52,11 @@ attr_destinations <- all_destinations %>%
   left_join(attractions, by = c("code" = "poi")) %>%
   mutate(across(all_of(purposes), ~.*WT))
 
-output_directory <- "result/Melbourne/destinationChoice"
-if (!dir.exists(output_directory)) {
-  dir.create(output_directory, recursive = TRUE)
-}
-write_csv(attr_destinations,"result/Melbourne/destinationChoice/destinationAttraction.csv")
+# output_directory <- "result/Melbourne/destinationChoice"
+# if (!dir.exists(output_directory)) {
+#   dir.create(output_directory, recursive = TRUE)
+# }
+write_csv(attr_destinations,"../melbourne/input/mito/microDestinationAttraction.csv")
 
 # Plot attraction results
 plot_data <- attr_destinations %>%
