@@ -4,7 +4,7 @@ library(tidyverse)
 dwellings <- readr::read_csv("../melbourne/microdata/dd_2018.csv") %>%
   transmute(type = "dwelling",
             code = "HH",
-            ID = paste0(type,"_",1:n(),sep = ""),
+            id = row_number(),
             X = coordX,
             Y = coordY,
             zone)
@@ -40,10 +40,10 @@ purposes <- names(attractions)[-1]
 all_destinations <- read_csv("../melbourne/preprocessing/poi/final/all_destinations.csv")
 attr_destinations <- all_destinations %>% 
   filter(code != "PT") %>%
-  group_by(code,ID) %>%
+  group_by(code,id) %>%
   mutate(WT = WT / n()) %>%
   ungroup() %>%
-  select(type,code,ID,X,Y,WT) %>%
+  select(type,code,id,X,Y,WT) %>%
   sf::st_as_sf(coords = c("X","Y"),remove = FALSE,crs = 28355) %>%
   sf::st_join(zones,join = sf::st_intersects) %>%
   sf::st_drop_geometry() %>%
@@ -52,11 +52,6 @@ attr_destinations <- all_destinations %>%
   left_join(attractions, by = c("code" = "poi")) %>%
   mutate(across(all_of(purposes), ~.*WT))
 
-# output_directory <- "result/Melbourne/destinationChoice"
-# if (!dir.exists(output_directory)) {
-#   dir.create(output_directory, recursive = TRUE)
-# }
-write_csv(attr_destinations,"../melbourne/input/mito/microDestinationAttraction.csv")
 
 # Plot attraction results
 plot_data <- attr_destinations %>%
@@ -76,3 +71,57 @@ test <- attr_destinations %>%
   summarise(sum_wt = sum(WT)) %>%
   left_join(attractions, by = c("code" = "poi")) %>%
   mutate(across(all_of(purposes), ~.*sum_wt))
+
+## Reshape data for MITO/SILO microDestinationAttraction.csv
+all_destinations_shaped <- all_destinations %>%
+  mutate(type = recode(type,
+    "Community health resources" = "community_health", 
+    "Early year access" = "early_year_access",
+    "Eating establishments" = "eating_establishments",
+    "Education" = "education",
+    "Financial" = "financial",
+    "Food retail" = "food_retail",
+    "Primary health care" = "primary_health_care",
+    "Recreational, sports pitches and facilities" = "recreation",
+    "Services" = "services",
+    "Social and cultural locations" = "social_and_culture",
+    "Public open space" = "public_open_space",
+    "Public transport" = "public_transport"
+  )) %>% 
+  rename(WEIGHT = weight) %>%
+  select(type, X, Y, WEIGHT, Attribute, id, WT, code)  %>%
+  filter(type != "public_transport")
+ 
+
+attr_destinations_shaped <- attr_destinations %>%
+  mutate(type = recode(type,
+    "Community health resources" = "community_health",
+    "Early year access" = "early_year_access",
+    "Eating establishments" = "eating_establishments",
+    "Education" = "education",
+    "Financial" = "financial",
+    "Food retail" = "food_retail",
+    "Primary health care" = "primary_health_care",
+    "Recreational, sports pitches and facilities" = "recreation",
+    "Services" = "services",
+    "Social and cultural locations" = "social_and_culture",
+    "Public open space" = "public_open_space"
+  )) %>%
+  select(code, id, zone, HBW, HBE, HBA, HBO, HBR, HBS, NHBO, NHBW) %>%
+  filter(code != "HH")
+
+
+
+microDestinationAttraction <- all_destinations_shaped %>%
+  left_join(attr_destinations_shaped, by = c("code", "id"))
+
+# > microDestinationAttraction$zone %>% is.na() %>% table()
+# .
+# FALSE  TRUE
+# 41011  1859
+
+# Omit NA zones
+microDestinationAttraction <- microDestinationAttraction %>%
+  filter(!is.na(zone))
+
+write_csv(microDestinationAttraction,"../melbourne/input/mito/microDestinationAttraction.csv")
