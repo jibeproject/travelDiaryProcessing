@@ -81,7 +81,7 @@ all_buildings <- bind_rows(buildings, .id = "type") %>%
   mutate(across(all_of(purposes), ~.*WT))
 
 write_csv(all_buildings,"result/Manchester/destinationChoice/microDestinationAttraction.csv")
-  
+
 #### TESTS ####
 # Check uniqueness of reference numbers
 all_buildings %>%
