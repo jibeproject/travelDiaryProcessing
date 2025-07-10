@@ -27,12 +27,17 @@ trips = readRDS("data/Manchester/processed/tripsForApollo.rds") %>%
                                   `40-44` = "40_54", `45-49` = "40_54", `50-54` = "40_54", `55-59` = "55_69",
                                   `60-64` = "55_69", `65-69` = "55_69", `70-74` = "70", `75-79` = "70",
                                   `80-84` = "70", `85+` = "70",.default = "NA"),
+         p.age_group_agg2 = recode(p.age_group, `5-9` = "5_14", `10-14` = "5_14", `15-19` = "15_24",
+                                   `20-24` = "15_24", `25-29` = "25_44", `30-34` = "25_44", `35-39` = "25_44",
+                                   `40-44` = "25_44", `45-49` = "45_64", `50-54` = "45_64", `55-59` = "45_64",
+                                   `60-64` = "45_64", `65-69` = "65", `70-74` = "65", `75-79` = "65",
+                                   `80-84` = "65", `85+` = "65",.default = "NA"),
          t.departureTime_6_20 = ifelse(t.departureTime>6*3600 & t.departureTime<20*3600,1,0),
          t.departureTime_6_22 = ifelse(t.departureTime>6*3600 & t.departureTime<22*3600,1,0),
          car_time = carTravelTime_sec/60,
          pt_time = ptTravelTime_sec/60) %>%
   filter(t.m_main_apollo!="X") %>%
-  dummy_cols(select_columns = c("p.age_group_agg","p.female","p.occupation",
+  dummy_cols(select_columns = c("p.age_group_agg","p.age_group_agg2","p.female","p.occupation",
                                 "hh.cars_gr","hh.income_agg",
                                 "t.departureTime_gr","t.full_purpose")) %>%
   left_join(RUC) %>%
@@ -45,7 +50,7 @@ trips = readRDS("data/Manchester/processed/tripsForApollo.rds") %>%
          av_carD = ifelse(p.age_group_agg_5_14 == 1,0,1),
          p.female = ifelse(p.age_group_agg_5_14 == 1,0,as.numeric(p.female)),
          hh.cars_gr_23 = hh.cars_gr_2 + hh.cars_gr_3) %>%
-  select(p.ID,t.ID,choice,starts_with("p.age_group_agg_"),p.age_55up,p.age_65up,p.female,p.female_FALSE,
+  select(p.ID,t.ID,choice,starts_with("p.age_group_agg_"),starts_with("p.age_group_agg2_"),p.age_55up,p.age_65up,p.female,p.female_FALSE,
          starts_with("p.occupation_"),starts_with("hh.cars_gr"),starts_with("hh.income_agg_"),hh.urban,
          starts_with("t.full_purpose_"),starts_with("av_"),"dist","dist_walk",
          car_time,pt_time) %>%
