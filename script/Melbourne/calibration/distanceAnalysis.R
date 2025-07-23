@@ -6,7 +6,7 @@ library(ggplot2)
 library(scales)    
 
 ## Simulation outputs ----------------------------------------------------------
-sim_trips <- fread("../melbourne/CarOwnership1/scenOutput/base/2018/microData/trips.csv")       
+sim_trips <- fread("../melbourne/NoCalibrarion/scenOutput/base/2018/microData/trips.csv")       
 
 # Clean simulation data
 sim_clean <- sim_trips %>%
@@ -29,7 +29,7 @@ sim_clean <- sim_trips %>%
   select(mode, dist, scenario)
 
 ## VISTA data ------------------------------------------------------------------
-vista_trips <- fread("./DOT_VISTA/T_VISTA_1220_Coord.csv") 
+vista_trips <- fread("./data/Melbourne/raw/T_VISTA_1220_Coord.csv") 
 
 # Filter on trips in Greater Melbourne 
 vista_trips_GM <- vista_trips %>%
@@ -108,7 +108,7 @@ vista_trip_clean <- vista_trip_purpose %>%
   filter(!mode %in% c("Other"))%>%
   select(mode, dist, scenario)
 
-## Visualisation ---------------------------------------------------------------
+## Visualise travel distance by mode -------------------------------------------
 all_trips <- bind_rows(
   sim_clean,
   vista_trip_clean
@@ -149,11 +149,51 @@ plot <- ggplot(all_trips, aes(x = dist, colour = scenario)) +
   )
 
 ggsave(
-  filename = "plot.png",
+  filename = "plotDistance.png",
        plot = plot,
        width = 8,
        height = 12, 
        bg = "white"
   )
+
+## Visualise mode share --------------------------------------------------------
+mode_shares <- all_trips %>%
+  count(scenario, mode) %>%
+  group_by(scenario) %>%
+  mutate(share = (n/ sum(n)) * 100) %>%
+  ungroup()
+
+plot <- ggplot(mode_shares, aes(x = mode, y = share, fill = scenario)) +
+  geom_col(
+    position = position_dodge(width = 0.8), 
+    width = 0.7
+    ) +
+  geom_text(
+    aes(label = sprintf("%.1f", share)),
+    position = position_dodge(width = 0.8),
+    vjust    = -0.3,
+    size     = 3
+  ) +
+  scale_y_continuous(
+    name   = "Mode share (%)",
+    labels = label_number(accuracy = 0.1),
+  ) +
+  labs(
+    x      = "Mode",
+    fill   = "Scenario"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.x   = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom"
+  )
+
+ggsave(
+  filename = "plotShare.png",
+  plot = plot,
+  width = 8,
+  height = 8, 
+  bg = "white"
+)
 
 
