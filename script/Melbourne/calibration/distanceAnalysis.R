@@ -6,12 +6,33 @@ library(ggplot2)
 library(scales)    
 
 ## Simulation outputs ----------------------------------------------------------
-sim_trips <- fread("../melbourne/NoCalibrarion/scenOutput/base/2018/microData/trips.csv")       
+sim_trips <- fread("../melbourne/NoCalibrarion/scenOutput/base/2018/microData/trips.csv") 
+sim_trips_calibration <- fread("../melbourne/CarOwnership/scenOutput/base/2018/microData/trips.csv")
 
 # Clean simulation data
 sim_clean <- sim_trips %>%
   mutate(
-    scenario = "Simulation",
+    scenario = "baseline",
+    mode = case_when(
+      mode == "autoDriver"     ~ "Driving Car",
+      mode == "autoPassenger"  ~ "Car Passenger",
+      mode == "pt"             ~ "Public Transport",
+      mode == "walk"           ~ "Walking",
+      mode == "bicycle"        ~ "Cycling",
+      TRUE                     ~ "Other"
+    ),
+    dist = case_when(mode=="Cycling"~t.distance_bike,
+                     mode=="Walking"~t.distance_walk,
+                     mode=="Public Transport"~t.distance_auto,
+                     mode=="Driving Car"~t.distance_auto,
+                     mode=="Car Passenger"~t.distance_auto),
+  ) %>%
+  select(mode, dist, scenario)
+
+# Clean calibrated simulation data
+sim_clean_calibration <- sim_trips_calibration %>%
+  mutate(
+    scenario = "calibration",
     mode = case_when(
       mode == "autoDriver"     ~ "Driving Car",
       mode == "autoPassenger"  ~ "Car Passenger",
@@ -111,6 +132,7 @@ vista_trip_clean <- vista_trip_purpose %>%
 ## Visualise travel distance by mode -------------------------------------------
 all_trips <- bind_rows(
   sim_clean,
+  sim_clean_calibration,
   vista_trip_clean
 )
 
