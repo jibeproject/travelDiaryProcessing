@@ -4,18 +4,18 @@ library(tidyverse)
 modeColoursL <- RColorBrewer::brewer.pal(12,"Set3")[c(5,7,10,6,4,9)]
 
 HBD <-list()
-HBD$base <- readr::read_csv("result/Manchester/modeChoice/discretionary/dynamic7new2_p.csv")
-HBD$lowStress <- readr::read_csv("result/Manchester/modeChoice/discretionary/dynamic7new2_p_ls.csv")
-HBD$green <- readr::read_csv("result/Manchester/modeChoice/discretionary/dynamic7new2_p_gn.csv")
-HBD$both <- readr::read_csv("result/Manchester/modeChoice/discretionary/dynamic7new2_p_both.csv")
+HBD$base <- readr::read_csv("result/local/Manchester/modeChoicePrediction/discretionary/dynamic7new2_p.csv")
+HBD$lowStress <- readr::read_csv("result/local/Manchester/modeChoicePrediction/discretionary/dynamic7new2_p_ls.csv")
+HBD$green <- readr::read_csv("result/local/Manchester/modeChoicePrediction/discretionary/dynamic7new2_p_gn.csv")
+HBD$both <- readr::read_csv("result/local/Manchester/modeChoicePrediction/discretionary/dynamic7new2_p_both.csv")
 HBD <- bind_rows(HBD,.id = "SCEN") %>% mutate(purpose = "discretionary")
 
 
 HBW <- list()
-HBW$base <- readr::read_csv("result/Manchester/modeChoice/work/dynamic10new3_p.csv")
-HBW$lowStress <- readr::read_csv("result/Manchester/modeChoice/work/dynamic10new3_p_ls.csv")
-HBW$green <- readr::read_csv("result/Manchester/modeChoice/work/dynamic10new3_p_gn.csv")
-HBW$both <- readr::read_csv("result/Manchester/modeChoice/work/dynamic10new3_p_both.csv")
+HBW$base <- readr::read_csv("result/local/Manchester/modeChoicePrediction/work/dynamic10new3_p.csv")
+HBW$lowStress <- readr::read_csv("result/local/Manchester/modeChoicePrediction/work/dynamic10new3_p_ls.csv")
+HBW$green <- readr::read_csv("result/local/Manchester/modeChoicePrediction/work/dynamic10new3_p_gn.csv")
+HBW$both <- readr::read_csv("result/local/Manchester/modeChoicePrediction/work/dynamic10new3_p_both.csv")
 HBW <- bind_rows(HBW,.id = "SCEN") %>% mutate(purpose = "work")
 
 

@@ -84,7 +84,7 @@ LL0 = 21408.93873922624
 Start LL = 10969.407339244488
 Final LL = 10966.989718563258
 
-BIKE DETOURS: min=0.73  25perc=1.00  med=1.01  mean=1.07  75perc=1.08  max=3.32
-BIKE OVERLAP: min=0.00  25perc=0.79  med=0.97  mean=0.85  75perc=1.00  max=1.00
-WALK DETOURS: min=0.72  25perc=1.00  med=1.00  mean=1.00  75perc=1.00  max=1.46
-WALK OVERLAP: min=0.00  25perc=1.00  med=1.00  mean=0.96  75perc=1.00  max=1.00
+BIKE DETOURS: min=1.00  25perc=1.07  med=1.21  mean=1.28  75perc=1.41  max=4.47
+BIKE OVERLAP: min=0.00  25perc=0.13  med=0.33  mean=0.42  75perc=0.67  max=1.00
+WALK DETOURS: min=1.00  25perc=1.00  med=1.01  mean=1.03  75perc=1.05  max=1.54
+WALK OVERLAP: min=0.00  25perc=0.35  med=0.72  mean=0.64  75perc=1.00  max=1.00
