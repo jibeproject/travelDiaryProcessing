@@ -70,7 +70,7 @@ error_modeUseDismatch_summary = trips%>%
   filter(error_modeUseDismatch)%>%
   group_by(t.m_main_agg,p.mode_combo)%>%count()
 
-write.table(error_modeUseDismatch_summary,"clipboard",row.names=F,sep = "\t")
+# write.table(error_modeUseDismatch_summary,"clipboard",row.names=F,sep = "\t")
 
 # For dismatch trips, add used mode into mode set
 trips = trips%>%
