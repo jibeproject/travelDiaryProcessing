@@ -1,0 +1,157 @@
+---
+title: "Trip Distance Calibration"
+author: "Mahsa Abdollahyar"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(tidyr)
+library(stringr)
+library(knitr)
+library(kableExtra)
+
+trips      <- read_csv("./data/Melbourne/trips.csv")
+persons    <- read_csv("./data/Melbourne/households.csv")
+households <- read_csv("./data/Melbourne/persons.csv")
+
+```
+
+```{r specifying related variables}
+
+# Prepare categories for each trip
+households <- households %>%
+  left_join(
+    persons %>%
+      filter(age >= 18) %>%
+      count(hhid, name = "hh_adults"),
+    by = "hhid"
+  ) %>%
+  replace_na(list(hh_adults = 0)) %>%
+  mutate(
+    carCategory = case_when(
+      cars == 0                 ~ "noCar",
+      cars / hh_adults < 1      ~ "autosPerAdult_under1",
+      TRUE                      ~ "autosPerAdult_over1"
+    )
+  )
+
+trips <- trips %>%
+  left_join(
+    households %>% select(hhid, carCategory),
+    by = "hhid"
+  ) %>% 
+  left_join(
+    persons %>% select(persid, age, sex, studying, mainact),
+    by = "persid"
+  ) %>%
+  mutate(
+    age_group = cut(age,
+      breaks = c(0, 17, 29, 59, Inf),
+      labels = c("0-17", "18-29", "30-59", "60+"),
+      include.lowest = TRUE
+    )
+  )
+
+# Compute trip lengths
+trip <- trips %>%
+  mutate(across(dist1:dist9, ~ as.numeric(.x) %>% replace_na(0))) %>%
+  rowwise() %>%
+  mutate(dist = sum(c_across(dist1:dist9), na.rm = TRUE)) %>%
+  ungroup()
+
+# Create clean trips data
+trip_final <- trip %>%  
+  filter(
+    full_purpose %in% c("HBW", "HBE", "HBS", "HBA", "HBO", "HBR", "NHBW", "NHBO"), 
+    dist < 25
+         ) %>% 
+  mutate(employment_status = ifelse(mainact %in% c("Casual Work", "Full-time Work", "Part-time Work"),
+                             "Employed", "Unemployed")) %>% 
+  select(tripid, purpose, full_purpose, dist, age,
+         employment_status,
+         student_status = studying,
+         car_ownership= carCategory,  
+         gender = sex, 
+         age_group = age_group)
+
+``` 
+
+# Number of Trips by category
+
+This section presents summary tables showing the total number of trips observed across each category of the selected demographic and socioeconomic variables:
+
+ **Demographic characteristics**   
+ - Age group  
+ - Gender
+
+**Socioeconomic attributes**  
+- Car ownership  
+- Student status
+- Employment status
+
+```{r table box, results='asis', warning=FALSE, message=FALSE,}
+
+# Table of number of trips for each category
+categories <- c("car_ownership", "student_status", "employment_status", "age_group", "gender")
+
+for (cat in categories) {
+  cat("\n\n### Number of Trips by ", str_to_sentence(gsub("_", " ", cat)), "\n\n")
+
+  table <- trip_final %>%
+    group_by(.data[[cat]]) %>%
+    summarise(n_trips = n(), .groups = "drop") %>% 
+    rename(
+      !!str_to_sentence(gsub("_", " ", cat)) := .data[[cat]],
+      `Total trips` = n_trips
+    )
+
+  # Print table with controlled width and height
+  print(
+    table %>%
+      kable("html", align = "l") %>%
+      kable_styling(
+        full_width = FALSE,
+        font_size = 18,
+        bootstrap_options = c("striped", "hover", "responsive")
+      ) %>%
+      column_spec(1, width = "20em", bold = TRUE) %>%
+      column_spec(2, width = "10em") %>%
+      scroll_box(width = "100%", height = "200px")
+  )
+  
+  cat("\n\n<br><br>\n\n")
+
+}
+
+```
+
+# Distribution of Travel Distances by Trip Purpose
+
+This section presents a series of boxplots comparing trip distance distributions across travel purposes for each category of the selected demographic and socioeconomic variables.
+
+```{r generate boxplots, warning=FALSE, message=FALSE, fig.width=12, fig.height=24, out.width='100%'}
+
+# Grid of travel distance boxplots for each category
+categories <- c("car_ownership", "student_status", "employment_status", "age_group", "gender")
+
+for (cat in categories) {
+  cat("Trip distance by ", gsub("_", " ", cat))
+  
+  plot <- ggplot(trip_final, aes_string(x = cat, y = "dist")) +
+    geom_boxplot(outlier.size = 0.5) +
+    facet_wrap(~ full_purpose, ncol = 2, scales = "free_y") +
+    labs(
+      title = paste0("Trip distance by ", gsub("_", " ", cat)),
+      x     = str_to_sentence(gsub("_", " ", cat)),
+      y     = "Trip distance"
+    ) +
+    theme_minimal(base_size = 16) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+  print(plot)
+}
+
+```

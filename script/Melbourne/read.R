@@ -139,6 +139,11 @@ trips <- trips %>%
     )
   )
 
+# # Write to csv for calibration
+# write_csv(trips,"./data/Melbourne/trips.csv")
+# write_csv(households,"./data/Melbourne/households.csv")
+# write_csv(persons,"./data/Melbourne/persons.csv")
+
 # Write trips to csv for routing
 out <- select(trips,hhid,persno,tripno,origX,origY,destX,destY,startimeS,linkmode)
 write_csv(out,"../../Documents/melbourne/vista_trips.csv")
