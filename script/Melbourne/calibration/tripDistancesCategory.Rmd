@@ -67,45 +67,42 @@ trips <- trips %>%
 trips_final <- trips %>%  
   filter(
     full_purpose %in% c("HBW", "HBE", "HBS", "HBA", "HBO", "HBR", "NHBW", "NHBO"), 
-    dist < 30
+    dist < 30, 
+    mainact != "Other"
          ) %>% 
-  filter(mainact != "Other") %>% 
   mutate(
-    occupation = case_when(
-      mainact %in% c("Casual Work", "Full-time Work", "Part-time Work") ~ "Employed", 
-      mainact %in% c("Full-time TAFE/Uni", "Part-time TAFE/Uni", "Primary School", "Secondary School", "Other Education") ~ "Student", 
-      mainact %in% c("Keeping House", "Unemployed", "Not Yet at School") ~ "Unemployed", 
-      mainact %in% c("Retired") ~ "Retired", 
-    )) %>% 
+    occupation = case_when( 
+      studying %in% c("Full-time TAFE/Uni", "Part-time TAFE/Uni", "Primary", "Secondary")  ~ "Student", 
+      mainact %in% c("Full-time TAFE/Uni", "Part-time TAFE/Uni", "Primary School", "Secondary School", "Other Education") ~ "Student",
+      mainact %in% c("Casual Work", "Full-time Work", "Part-time Work")   ~ "Employed (not studying)", 
+      mainact %in% c("Keeping House", "Unemployed", "Not Yet at School")  ~ "Unemployed (not studying)", 
+      mainact %in% c("Retired") ~ "Retired"
+      )) %>% 
   select(tripid, persid, purpose, full_purpose, dist, age,
          occupation, 
          car_ownership= carCategory,  
          gender = sex, 
          age_group)
 
-trips_final <- trips_final %>% 
+trips_final <- trips_final %>%
   mutate(
-    demographic_status = case_when( 
+    demographic_status = case_when(
       age_group == "0-17" & car_ownership == "noCar" ~ "Under 18, no car",
       age_group == "0-17" & car_ownership != "noCar" ~ "Under 18, with car",
-      
+
       age_group != "0-17" & occupation == "Student" & car_ownership == "noCar" ~ "Student, no car",
       age_group != "0-17" & occupation == "Student" & car_ownership != "noCar" ~ "Student, with car",
-      
-      age_group != "0-17" & occupation == "Employed" & car_ownership == "noCar" ~ "Employed, no car",
-      age_group != "0-17" & occupation == "Employed" & car_ownership != "noCar" ~ "Employed, with car",
-      
-      (age_group == "65+" & occupation == "Unemployed" & car_ownership == "noCar") | (occupation == "Retired" & car_ownership == "noCar") ~ 
-        "Retired, no car",
-      (age_group == "65+" & occupation == "Unemployed" & car_ownership != "noCar") | (occupation == "Retired" & car_ownership != "noCar") ~ 
-        "Retired, with car",
-      
-      age_group != "0-17" & age_group != "65+" & occupation == "Unemployed" & car_ownership == "noCar" ~ 
-        "Unemployed, no car",
-      age_group != "0-17" & age_group != "65+" & occupation == "Unemployed" & car_ownership != "noCar" ~ 
-        "Unemployed, with car",
+
+      age_group != "0-17" & occupation == "Employed (not studying)" & car_ownership == "noCar" ~ "Employed (not studying), no car",
+      age_group != "0-17" & occupation == "Employed (not studying)" & car_ownership != "noCar" ~ "Employed (not studying), with car",
+
+      (age_group == "65+" & occupation == "Unemployed (not studying)" & car_ownership == "noCar") | (occupation == "Retired" & car_ownership == "noCar") ~ "Retired, no car",
+      (age_group == "65+" & occupation == "Unemployed (not studying)" & car_ownership != "noCar") | (occupation == "Retired" & car_ownership != "noCar") ~ "Retired, with car",
+
+      age_group != "0-17" & age_group != "65+" & occupation == "Unemployed (not studying)" & car_ownership == "noCar" ~ "Unemployed (not studying), no car",
+      age_group != "0-17" & age_group != "65+" & occupation == "Unemployed (not studying)" & car_ownership != "noCar" ~ "Unemployed (not studying), with car",
     ))
-  
+
 ``` 
 
 # Number of Trips by category
