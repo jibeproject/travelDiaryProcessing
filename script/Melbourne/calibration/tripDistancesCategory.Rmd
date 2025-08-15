@@ -64,10 +64,11 @@ trips <- trips %>%
   ungroup()
 
 # Create clean trips data
+threshold <- quantile(trips$dist, 0.99, na.rm = TRUE)
 trips_final <- trips %>%  
   filter(
     full_purpose %in% c("HBW", "HBE", "HBS", "HBA", "HBO", "HBR", "NHBW", "NHBO"), 
-    dist < 30, 
+    dist < threshold, 
     mainact != "Other"
          ) %>% 
   mutate(
@@ -295,10 +296,14 @@ This section presents a series of boxplots comparing trip distance distributions
 # Grid of travel distance boxplots for each category
 categories <- c("car_ownership", "age_group", "gender", "occupation", "demographic_status")
 
+max <- quantile(trips$dist, 0.90, na.rm = TRUE) 
+trips_plots <- trips_final %>% 
+   filter(dist < max ) # filter the distance for better visualisation
+
 for (cat in categories) {
   cat("Trip distance by ", gsub("_", " ", cat))
   
-  plot <- ggplot(trips_final, aes_string(x = cat, y = "dist")) +
+  plot <- ggplot(trips_plots, aes_string(x = cat, y = "dist")) +
     geom_boxplot(outlier.size = 0.5) +
     facet_wrap(~ full_purpose, ncol = 2, scales = "free_y") +
     labs(
