@@ -121,7 +121,7 @@ categories <- c("car_ownership", "age_group", "gender", "occupation", "demograph
 
 for (cat in categories) {
   format <- gsub("_", " ", cat)
-  cat("\n\n### Total trips and percentage by ", format, "\n\n")
+  cat("\n\n### Total number of trips and percentage by ", format, "\n\n")
 
   table <- trips_final %>%
     group_by(level = .data[[cat]]) %>%
@@ -140,9 +140,7 @@ for (cat in categories) {
         font_size = 18,
         bootstrap_options = c("striped", "hover", "responsive")
       ) %>%
-      column_spec(1, width = "20em", bold = TRUE) %>%
-      column_spec(2, width = "10em") %>%
-      scroll_box(width = "100%", height = "200px")
+      column_spec(1, width = "20em", bold = TRUE)
   )
 
   cat("\n\n<br><br>\n\n")
@@ -163,30 +161,14 @@ for (cat in categories) {
   cat("\n\n### Number of trips by ", format, " and purpose\n\n")
   
   table <- trips_final %>%
-    group_by(level = .data[[cat]], full_purpose) %>%
-    summarise(n_trips = n(), .groups = "drop_last") %>%
+    group_by(full_purpose, level = .data[[cat]]) %>%
+    summarise(n_trips = n(), .groups = "drop") %>%
     mutate(pct = n_trips / sum(n_trips)) %>% 
-    mutate(pct = sprintf("%.1f%%", 100 * pct)) %>%
-    ungroup()
-  
-  purposes <- sort(unique(table$full_purpose))
-  
-  table <- table %>%
-    pivot_wider(
-      names_from   = full_purpose,
-      values_from  = c(n_trips, pct),
-      names_glue  = "{full_purpose} {.value}",
-      values_fill  = list(n_trips = 0, pct = "0.0%")
-    ) %>%
-    rename(!!format := level) %>% 
-    { 
-      names(.) <- names(.) |>
-        stringr::str_replace(" n_trips$", " (n)") |>
-        stringr::str_replace(" pct$", " (%)")
-      desired  <- c(format, as.vector(rbind(paste0(purposes, " (n)"), paste0(purposes, " (%)"))))
-      out <- .[, intersect(desired, names(.)), drop = FALSE]
-      out
-    }
+    mutate(pct = sprintf("%.1f%%", 100 * pct)) %>% 
+    rename(!!format := level,
+           Purpose = full_purpose,
+           `Trips (n)` = n_trips,
+           `Trips (%)` = pct)
 
   # Print table with controlled width and height
   print(
@@ -197,9 +179,8 @@ for (cat in categories) {
         font_size = 18,
         bootstrap_options = c("striped", "hover", "responsive")
       ) %>%
-      column_spec(1, width = "20em", bold = TRUE) %>%
-      column_spec(2, width = "10em") %>%
-      scroll_box(width = "100%", height = "200px")
+      column_spec(2, width = "20em", bold = TRUE) %>% 
+      collapse_rows(columns = 1, valign = "top")
   )
   
   cat("\n\n<br><br>\n\n")
@@ -241,14 +222,15 @@ for (cat in categories) {
 
   print(
     tbl %>%
-      knitr::kable("html", align = "l", col.names = c(pretty, "Persons", "Percent (%)")) %>%
-      kableExtra::kable_styling(full_width = FALSE, font_size = 18,
-                                bootstrap_options = c("striped","hover","responsive")) %>%
-      kableExtra::column_spec(1, width = "20em", bold = TRUE) %>%
-      kableExtra::column_spec(2, width = "10em") %>%
-      kableExtra::scroll_box(width = "100%", height = "200px")
+      kable("html", align = "l", col.names = c(pretty, "Persons", "Percent (%)")) %>%
+      kable_styling(
+        full_width = FALSE, 
+        font_size = 18,
+        bootstrap_options = c("striped","hover","responsive") 
+        ) %>% 
+      column_spec(1, width = "20em", bold = TRUE) 
   )
-
+  
   cat("\n\n<br><br>\n\n")
 }
 
@@ -256,7 +238,7 @@ for (cat in categories) {
 
 # Distance statistics by category and purpose
 
-This section presents tables summarising the mean, median, 25th percentile, and 75th percentile distance travelledacross each category of the selected demographic and socioeconomic categories and trip purposes.
+This section presents tables summarising the mean, median, 25th percentile, and 75th percentile distance travelled across each category of the selected demographic and socioeconomic categories and trip purposes.
 
 ```{r generate summary, results='asis', warning=FALSE, message=FALSE,}
 
@@ -269,51 +251,34 @@ for (cat in categories) {
   cat("\n\n### Trip distance statistics by ", pretty, " and purpose\n\n")
   
   summary_table <- trips_final %>% 
-    group_by(level = .data[[cat]], full_purpose) %>%
+    group_by(full_purpose, level = .data[[cat]]) %>%
     summarise(
       mean   = mean(dist, na.rm = TRUE),
       median = median(dist, na.rm = TRUE),
       q25    = quantile(dist, 0.25, na.rm = TRUE, type = 7),
       q75    = quantile(dist, 0.75, na.rm = TRUE, type = 7),
       .groups = "drop"
-    )
-  
-  purposes <- sort(unique(summary_table$full_purpose))
-  
-  summary_table <- summary_table %>%
-    pivot_wider(
-      names_from  = full_purpose,
-      values_from = c(mean, median, q25, q75),
-      names_glue  = "{full_purpose} {.value}"
-    ) %>%
-    rename(!!pretty := level) %>%
-    {
-      names(.) <- names(.) |>
-        str_replace(" mean$", " (mean)") |>
-        str_replace(" median$", " (median)") |>
-        str_replace(" q25$", " (q25)") |>
-        str_replace(" q75$", " (q75)")
-      desired <- c(
-        pretty,
-        as.vector(rbind(
-          paste0(purposes, " (mean)"),
-          paste0(purposes, " (median)"),
-          paste0(purposes, " (q25)"),
-          paste0(purposes, " (q75)")
-        ))
+    ) %>% 
+    mutate(across(c(mean, median, q25, q75), ~ round(.x, 2))) %>%
+    rename(
+      !!pretty := level, 
+      Purpose  = full_purpose,
+      `Mean`   = mean,
+      `Median` = median,
+      `Q25`    = q25,
+      `Q75`    = q75
       )
-      .[, intersect(desired, names(.)), drop = FALSE]
-    } %>%
-    mutate(across(-1, ~ round(., 2)))
   
   print(
     summary_table %>%
-      knitr::kable("html", align = "l") %>% 
-      kableExtra::kable_styling(full_width = FALSE, font_size = 18,
-                                bootstrap_options = c("striped","hover","responsive")) %>%
-      kableExtra::column_spec(1, width = "20em", bold = TRUE) %>%
-      kableExtra::column_spec(2:3, width = "10em") %>%
-      kableExtra::scroll_box(width = "100%", height = "200px")
+      kable("html", align = "l") %>% 
+      kable_styling(
+        full_width = FALSE, 
+        font_size = 18,
+        bootstrap_options = c("striped","hover","responsive")
+        ) %>% 
+      column_spec(2, width = "20em", bold = TRUE) %>% 
+      collapse_rows(columns = 1, valign = "top")
   )
   
   cat("\n\n<br><br>\n\n")
