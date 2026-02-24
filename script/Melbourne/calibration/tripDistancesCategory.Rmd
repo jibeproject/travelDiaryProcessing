@@ -1,0 +1,319 @@
+---
+title: "Trip Distance Calibration"
+author: "Mahsa Abdollahyar"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(tidyr)
+library(stringr)
+library(knitr)
+library(kableExtra)
+
+trips      <- read_csv("~/Dev/JIBE/Repo/travelDiaryProcessing/data/Melbourne/trips.csv")
+persons    <- read_csv("~/Dev/JIBE/Repo/travelDiaryProcessing/data/Melbourne/persons.csv")
+households <- read_csv("~/Dev/JIBE/Repo/travelDiaryProcessing/data/Melbourne/households.csv")
+
+```
+
+```{r specifying related variables}
+
+# Prepare categories for each trip
+households <- households %>%
+  left_join(
+    persons %>%
+      filter(age >= 18) %>%
+      count(hhid, name = "hh_adults"),
+    by = "hhid"
+  ) %>%
+  replace_na(list(hh_adults = 0)) %>%
+  mutate(
+    carCategory = case_when(
+      cars == 0                 ~ "noCar",
+      cars / hh_adults < 1      ~ "autosPerAdult_under1",
+      TRUE                      ~ "autosPerAdult_over1"
+    )
+  )
+
+trips <- trips %>%
+  left_join(
+    households %>% select(hhid, carCategory),
+    by = "hhid"
+  ) %>% 
+  left_join(
+    persons %>% select(persid, age, sex, studying, mainact),
+    by = "persid"
+  ) %>%
+  mutate(
+    age_group = cut(age,
+      breaks = c(0, 17, 29, 64, Inf),
+      labels = c("0-17", "18-29", "30-64", "65+"),
+      include.lowest = TRUE
+    )
+  )
+
+# Compute trip lengths
+trips <- trips %>%
+  mutate(across(dist1:dist9, ~ as.numeric(.x) %>% replace_na(0))) %>%
+  rowwise() %>%
+  mutate(dist = sum(c_across(dist1:dist9), na.rm = TRUE)) %>%
+  ungroup()
+
+# Create clean trips data
+threshold <- quantile(trips$dist, 0.99, na.rm = TRUE)
+trips_final <- trips %>%  
+  filter(
+    full_purpose %in% c("HBW", "HBE", "HBS", "HBA", "HBO", "HBR", "NHBW", "NHBO"), 
+    dist < threshold, 
+    mainact != "Other"
+         ) %>% 
+  mutate(
+    occupation = case_when( 
+      studying %in% c("Full-time TAFE/Uni", "Part-time TAFE/Uni", "Primary", "Secondary")  ~ "Student", 
+      mainact %in% c("Full-time TAFE/Uni", "Part-time TAFE/Uni", "Primary School", "Secondary School", "Other Education") ~ "Student",
+      mainact %in% c("Casual Work", "Full-time Work", "Part-time Work")   ~ "Employed (not studying)", 
+      mainact %in% c("Keeping House", "Unemployed", "Not Yet at School")  ~ "Unemployed (not studying)", 
+      mainact %in% c("Retired") ~ "Retired"
+      )) %>% 
+  select(tripid, persid, purpose, full_purpose, dist, age,
+         occupation, 
+         car_ownership= carCategory,  
+         gender = sex, 
+         age_group)
+
+trips_final <- trips_final %>%
+  mutate(
+    demographic_status = case_when(
+      age_group == "0-17" & car_ownership == "noCar" ~ "Under 18, no car",
+      age_group == "0-17" & car_ownership != "noCar" ~ "Under 18, with car",
+
+      age_group != "0-17" & occupation == "Student" & car_ownership == "noCar" ~ "Student, no car",
+      age_group != "0-17" & occupation == "Student" & car_ownership != "noCar" ~ "Student, with car",
+
+      age_group != "0-17" & occupation == "Employed (not studying)" & car_ownership == "noCar" ~ "Employed (not studying), no car",
+      age_group != "0-17" & occupation == "Employed (not studying)" & car_ownership != "noCar" ~ "Employed (not studying), with car",
+
+      (age_group == "65+" & occupation == "Unemployed (not studying)" & car_ownership == "noCar") | (occupation == "Retired" & car_ownership == "noCar") ~ "Retired, no car",
+      (age_group == "65+" & occupation == "Unemployed (not studying)" & car_ownership != "noCar") | (occupation == "Retired" & car_ownership != "noCar") ~ "Retired, with car",
+
+      age_group != "0-17" & age_group != "65+" & occupation == "Unemployed (not studying)" & car_ownership == "noCar" ~ "Unemployed (not studying), no car",
+      age_group != "0-17" & age_group != "65+" & occupation == "Unemployed (not studying)" & car_ownership != "noCar" ~ "Unemployed (not studying), with car",
+    ))
+
+``` 
+
+# Number of Trips by category
+
+This section presents summary tables showing the total number and percentage of trips observed across each category of the selected demographic and socioeconomic variables:
+
+ - Age group  
+ - Gender
+ - Employment status
+ - Student status
+ - Car ownership  
+
+```{r table box, results='asis', warning=FALSE, message=FALSE,}
+
+categories <- c("car_ownership", "age_group", "gender", "occupation", "demographic_status")
+
+for (cat in categories) {
+  format <- gsub("_", " ", cat)
+  cat("\n\n### Total number of trips and percentage by ", format, "\n\n")
+
+  table <- trips_final %>%
+    group_by(level = .data[[cat]]) %>%
+    summarise(n_trips = n(), .groups = "drop") %>%
+    mutate(pct = n_trips / sum(n_trips)) %>%
+    mutate(pct = sprintf("%.1f%%", 100 * pct)) %>%
+    rename(!!format := level) %>%
+    rename(`Total trips (n)` = n_trips,
+           `Total trips (%)` = pct)
+  
+  print(
+    table %>%
+      kable("html", align = "l") %>%
+      kable_styling(
+        full_width = FALSE,
+        font_size = 18,
+        bootstrap_options = c("striped", "hover", "responsive")
+      ) %>%
+      column_spec(1, width = "20em", bold = TRUE)
+  )
+
+  cat("\n\n<br><br>\n\n")
+}
+
+```
+
+# Number of Trips by category and purpose
+
+This section provides summary tables detailing the total number and percentage of trips recorded for each category of the selected demographic and socioeconomic variables, broken down by trip purpose.
+
+```{r purpose table box, results='asis', warning=FALSE, message=FALSE,}
+
+categories <- c("car_ownership", "age_group", "gender", "occupation", "demographic_status")
+
+for (cat in categories) {
+  format <- gsub("_", " ", cat)
+  cat("\n\n### Number of trips by ", format, " and purpose\n\n")
+  
+  table <- trips_final %>%
+    group_by(full_purpose, level = .data[[cat]]) %>%
+    summarise(n_trips = n(), .groups = "drop") %>%
+    mutate(pct = n_trips / sum(n_trips)) %>% 
+    mutate(pct = sprintf("%.1f%%", 100 * pct)) %>% 
+    rename(!!format := level,
+           Purpose = full_purpose,
+           `Trips (n)` = n_trips,
+           `Trips (%)` = pct)
+
+  # Print table with controlled width and height
+  print(
+    table %>%
+      kable("html", align = "l") %>%
+      kable_styling(
+        full_width = FALSE,
+        font_size = 18,
+        bootstrap_options = c("striped", "hover", "responsive")
+      ) %>%
+      column_spec(2, width = "20em", bold = TRUE) %>% 
+      collapse_rows(columns = 1, valign = "top")
+  )
+  
+  cat("\n\n<br><br>\n\n")
+}
+
+```
+
+# Number of persons by category
+
+This section presents summary tables showing the total number of persons observed across each category of the selected demographic and socioeconomic variables
+
+```{r generate table, results='asis', warning=FALSE, message=FALSE,}
+
+# Person level table (one row per person)
+trips_person <- trips_final %>%
+  group_by(persid) %>%
+  summarise(
+    age_group         = dplyr::first(age_group),
+    gender            = dplyr::first(gender),
+    occupation        = dplyr::first(occupation),
+    car_ownership     = dplyr::first(car_ownership),
+    demographic_status= dplyr::first(demographic_status),
+    .groups = "drop"
+  )
+
+total_persons <- nrow(trips_person)
+
+# Table of number of people for each category
+categories <- c("car_ownership", "age_group", "gender", "occupation", "demographic_status")
+
+for (cat in categories) {
+  pretty <- gsub("_", " ", cat)
+  cat("\n\n### Number of persons by ", pretty, "\n\n")
+
+  tbl <- trips_person %>%
+    count(level = .data[[cat]], name = "Persons") %>% 
+    mutate(Percent = round(100 * Persons / total_persons, 1)) %>%
+    rename(!!pretty := level)
+
+  print(
+    tbl %>%
+      kable("html", align = "l", col.names = c(pretty, "Persons", "Percent (%)")) %>%
+      kable_styling(
+        full_width = FALSE, 
+        font_size = 18,
+        bootstrap_options = c("striped","hover","responsive") 
+        ) %>% 
+      column_spec(1, width = "20em", bold = TRUE) 
+  )
+  
+  cat("\n\n<br><br>\n\n")
+}
+
+```
+
+# Distance statistics by category and purpose
+
+This section presents tables summarising the mean, median, 25th percentile, and 75th percentile distance travelled across each category of the selected demographic and socioeconomic categories and trip purposes.
+
+```{r generate summary, results='asis', warning=FALSE, message=FALSE,}
+
+# Categories to summarise 
+categories <- c("car_ownership", "age_group", "gender", "occupation", "demographic_status")
+
+# Loop to create mean/median distance tables 
+for (cat in categories) {
+  pretty <- gsub("_", " ", cat)
+  cat("\n\n### Trip distance statistics by ", pretty, " and purpose\n\n")
+  
+  summary_table <- trips_final %>% 
+    group_by(full_purpose, level = .data[[cat]]) %>%
+    summarise(
+      mean   = mean(dist, na.rm = TRUE),
+      median = median(dist, na.rm = TRUE),
+      q25    = quantile(dist, 0.25, na.rm = TRUE, type = 7),
+      q75    = quantile(dist, 0.75, na.rm = TRUE, type = 7),
+      .groups = "drop"
+    ) %>% 
+    mutate(across(c(mean, median, q25, q75), ~ round(.x, 2))) %>%
+    rename(
+      !!pretty := level, 
+      Purpose  = full_purpose,
+      `Mean`   = mean,
+      `Median` = median,
+      `Q25`    = q25,
+      `Q75`    = q75
+      )
+  
+  print(
+    summary_table %>%
+      kable("html", align = "l") %>% 
+      kable_styling(
+        full_width = FALSE, 
+        font_size = 18,
+        bootstrap_options = c("striped","hover","responsive")
+        ) %>% 
+      column_spec(2, width = "20em", bold = TRUE) %>% 
+      collapse_rows(columns = 1, valign = "top")
+  )
+  
+  cat("\n\n<br><br>\n\n")
+}
+
+```
+
+# Distribution of Travel Distances by Trip Purpose
+
+This section presents a series of boxplots comparing trip distance distributions across travel purposes for each category of the selected demographic and socioeconomic variables.
+
+```{r generate boxplots, warning=FALSE, message=FALSE, fig.width=12, fig.height=24, out.width='100%'}
+
+# Grid of travel distance boxplots for each category
+categories <- c("car_ownership", "age_group", "gender", "occupation", "demographic_status")
+
+max <- quantile(trips$dist, 0.90, na.rm = TRUE) 
+trips_plots <- trips_final %>% 
+   filter(dist < max ) # filter the distance for better visualisation
+
+for (cat in categories) {
+  cat("Trip distance by ", gsub("_", " ", cat))
+  
+  plot <- ggplot(trips_plots, aes_string(x = cat, y = "dist")) +
+    geom_boxplot(outlier.size = 0.5) +
+    facet_wrap(~ full_purpose, ncol = 2, scales = "free_y") +
+    labs(
+      title = paste0("Trip distance by ", gsub("_", " ", cat)),
+      x     = str_to_sentence(gsub("_", " ", cat)),
+      y     = "Trip distance"
+    ) +
+    theme_minimal(base_size = 16) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+  print(plot)
+}
+
+```

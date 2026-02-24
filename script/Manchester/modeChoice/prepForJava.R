@@ -5,15 +5,14 @@ rm(list = ls())
 
 library(tidyverse)
 library(fastDummies)
-library(corrplot)
-
+ 
 # ################################################################# #
 ####      LOAD DATA AND APPLY ANY TRANSFORMATIONS       #############
 # ################################################################# #
 
 
 # Urban / rural
-RUC <- readr::read_csv("../manchester/zones/RUC11_OA11_EW.csv") %>%
+RUC <- readr::read_csv("data/Manchester/gis/RUC11_OA11_EW.csv") %>%
   transmute(hh.OA = OA11CD, hh.urban = startsWith(RUC11,"Urban"))
 
 
@@ -66,17 +65,19 @@ tripsForJavaNHBO <- trips %>% filter(t.full_purpose_NHBO == 1) %>%
   mutate(av_carD = ifelse(hh.cars_gr_0 == 1,0,av_carD))
 tripsForJavaRRT <- trips %>% filter(t.full_purpose_RRT == 1, choice >= 3)
 
-write_csv(tripsForJavaHBD,"data/Manchester/processed/dynamicLCP/discretionary.csv")
-write_csv(tripsForJavaHBW,"data/Manchester/processed/dynamicLCP/work.csv")
-write_csv(tripsForJavaHBE,"data/Manchester/processed/dynamicLCP/education.csv")
-write_csv(tripsForJavaHBA,"data/Manchester/processed/dynamicLCP/accompany.csv")
-write_csv(tripsForJavaNHBO,"data/Manchester/processed/dynamicLCP/nhbo.csv")
-write_csv(tripsForJavaNHBW,"data/Manchester/processed/dynamicLCP/nhbw.csv")
+write_csv(tripsForJavaHBD,"data/Manchester/processed/forModeChoiceEstimation/discretionary.csv")
+write_csv(tripsForJavaHBW,"data/Manchester/processed/forModeChoiceEstimation/work.csv")
+write_csv(tripsForJavaHBE,"data/Manchester/processed/forModeChoiceEstimation/education.csv")
+write_csv(tripsForJavaHBA,"data/Manchester/processed/forModeChoiceEstimation/accompany.csv")
+write_csv(tripsForJavaNHBO,"data/Manchester/processed/forModeChoiceEstimation/nhbo.csv")
+write_csv(tripsForJavaNHBW,"data/Manchester/processed/forModeChoiceEstimation/nhbw.csv")
 saveRDS(tripsForJavaRRT,"data/Manchester/processed/rrt.Rds")
 
 # ################################################################# #
   ##################      RELATED ANALYSIS       ##################
 # ################################################################# #
+
+library(corrplot)
 
 # Quick RRT model
 RRTdata <- tripsForJavaRRT %>%
