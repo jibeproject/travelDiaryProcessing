@@ -541,6 +541,13 @@ m.tripGenHurdle$RRT <- hurdle(RRT ~
 summary(m.tripGenHurdle$RRT)
 #compare_MCsimulation(m.tripGenHurdle$RRT)
 
+######################## SAVE MODELS ########################
+
+saveRDS(list(yn     = m.tripGenYn,
+             polr   = m.tripGenPolr,
+             hurdle = m.tripGenHurdle),
+        file = "results/tripGenModels.rds")
+
 ######################## WRITE COEFFICIENT TABLES TO CSV USING MODELSUMMARY ########################
 gm <- modelsummary::gof_map
 gm$omit <- TRUE
@@ -560,6 +567,82 @@ referenceVariables <- data.frame(variable= c("(Intercept)", "p.female", "hh.urba
 modelSummaryHurdle<-modelsummary(m.tripGenHurdle, output = "results/CoefficientsNegBinCountV2.xlsx", fmt=8, statistic=NULL, gof_map = gm)
 modelSummaryPolrCount<-modelsummary(m.tripGenPolr, output = "results/CoefficientsPolrCountV2.xlsx", fmt=8, statistic=NULL, gof_map = gm)
 modelSummaryBinZero<-modelsummary(m.tripGenYn, output = "results/CoefficientsZeroBinV2.xlsx", fmt=8, statistic=NULL, gof_map = gm)
+
+# Load required library for Word output
+library(officer)
+
+# Generate Word files with coefficients, standard errors (sd), t/z-test statistics, and p-values
+# Note: Set fmt=3 for 3 decimal places; Remove statistic=NULL to include default columns (estimate, std.error, statistic, p.value)
+# Add stars=TRUE for significance stars; vcov="classical" for standard errors
+# These will create separate Word files for each model group, similar to your Excel outputs
+
+modelSummaryHurdle_word <- modelsummary(
+  m.tripGenHurdle, 
+  output = "results/CoefficientsNegBinCountV2.docx", 
+  fmt = 3, 
+  vcov = "classical",
+  stars = TRUE,
+  gof_map = gm
+)
+
+modelSummaryPolrCount_word <- modelsummary(
+  m.tripGenPolr, 
+  output = "results/CoefficientsPolrCountV2.docx", 
+  fmt = 3, 
+  vcov = "classical",
+  stars = TRUE,
+  gof_map = gm
+)
+
+modelSummaryBinZero_word <- modelsummary(
+  m.tripGenYn, 
+  output = "results/CoefficientsZeroBinV2.docx", 
+  fmt = 3, 
+  vcov = "classical",
+  stars = TRUE,
+  gof_map = gm
+)
+
+# Optional: Combine all models into a single Word file for the paper
+# (Adjust 'align' if needed for column widths; this assumes balanced models)
+modelSummaryAll_word <- modelsummary(
+  list(
+    "HBW (Binary)" = m.tripGenYn$HBW,
+    "HBE (Binary)" = m.tripGenYn$HBE,
+    "HBW (Ordered)" = m.tripGenPolr$HBW,
+    "HBE (Ordered)" = m.tripGenPolr$HBE,
+    "HBS (Hurdle)" = m.tripGenHurdle$HBS,
+    "HBR (Hurdle)" = m.tripGenHurdle$HBR,
+    "HBO (Hurdle)" = m.tripGenHurdle$HBO,
+    "HBA (Hurdle)" = m.tripGenHurdle$HBA,
+    "NHBW (Hurdle)" = m.tripGenHurdle$NHBW,
+    "NHBO (Hurdle)" = m.tripGenHurdle$NHBO,
+    "RRT (Hurdle)" = m.tripGenHurdle$RRT
+  ),
+  output = "results/AllTripGenModels.docx",
+  fmt = 3,
+  vcov = "classical",
+  stars = TRUE,
+  gof_map = gm,
+  title = "Trip Generation Models: Coefficients, Standard Errors, Test Statistics, and P-Values",
+  notes = "Hurdle models show separate zero-inflation and count components. * p<0.1, ** p<0.05, *** p<0.01."
+)
+
+# If you want to customize columns explicitly (e.g., only estimate, se, statistic, p.value):
+# Replace the above with:
+# modelSummaryHurdle_word <- modelsummary(
+#   m.tripGenHurdle, 
+#   output = "results/CoefficientsNegBinCountV2.docx", 
+#   fmt = 3, 
+#   estimate = "{estimate}{stars}",
+#   statistic = "std.error",
+#   add_columns = list(
+#     "z" = ~ coef(summary(.)[, "z value"]),
+#     "p.value" = ~ coef(summary(.)[, "Pr(>|z|)"])
+#   ),
+#   gof_map = gm
+# )
+
 
 # Hurdle Count
 modelSummaryHurdleCount<- modelSummaryHurdle %>%
